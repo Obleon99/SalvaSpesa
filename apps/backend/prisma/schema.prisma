@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Chain {
+  id      String  @id @default(cuid())
+  name    String
+  logoUrl String?
+  website String
+
+  stores         Store[]
+  flyers         Flyer[]
+  productAliases ProductAlias[]
+  priceHistory   PriceHistory[]
+}
+
+model Store {
+  id      String @id @default(cuid())
+  chainId String
+  chain   Chain  @relation(fields: [chainId], references: [id])
+  address String
+  city    String
+  region  String
+  lat     Float
+  lng     Float
+
+  flyers       Flyer[]
+  priceHistory PriceHistory[]
+
+  @@index([chainId])
+}
+
+model Brand {
+  id             String  @id @default(cuid())
+  name           String
+  isPrivateLabel Boolean @default(false)
+
+  products Product[]
+}
+
+model Category {
+  id       String     @id @default(cuid())
+  name     String
+  parentId String?
+  parent   Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryToCategory")
+
+  products Product[]
+}
+
+enum UnitOfMeasure {
+  KG
+  G
+  L
+  ML
+  PZ
+}
+
+model Product {
+  id                String        @id @default(cuid())
+  name              String
+  brandId           String?
+  brand             Brand?        @relation(fields: [brandId], references: [id])
+  categoryId        String?
+  category          Category?     @relation(fields: [categoryId], references: [id])
+  ean               String?       @unique
+  unitSize          Float
+  unitOfMeasure     UnitOfMeasure
+  canonicalImageUrl String?
+
+  aliases      ProductAlias[]
+  offers       Offer[]
+  priceHistory PriceHistory[]
+  listItems    ShoppingListItem[]
+  alerts       Alert[]
+
+  @@index([categoryId])
+  @@index([brandId])
+}
+
+model ProductAlias {
+  id         String  @id @default(cuid())
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  chainId    String
+  chain      Chain   @relation(fields: [chainId], references: [id])
+  rawName    String
+  confidence Float
+
+  @@unique([chainId, rawName])
+  @@index([productId])
+}
+
+enum FlyerSourceType {
+  HTML
+  PDF
+}
+
+model Flyer {
+  id         String          @id @default(cuid())
+  chainId    String
+  chain      Chain           @relation(fields: [chainId], references: [id])
+  storeId    String?
+  store      Store?          @relation(fields: [storeId], references: [id])
+  startDate  DateTime
+  endDate    DateTime
+  sourceUrl  String
+  sourceType FlyerSourceType
+  scrapedAt  DateTime        @default(now())
+
+  offers Offer[]
+
+  @@index([chainId])
+}
+
+model Offer {
+  id              String   @id @default(cuid())
+  flyerId         String
+  flyer           Flyer    @relation(fields: [flyerId], references: [id])
+  productId       String?
+  product         Product? @relation(fields: [productId], references: [id])
+  rawName         String
+  price           Float
+  originalPrice   Float?
+  discountPercent Float?
+  unitPrice       Float
+  imageUrl        String?
+
+  @@index([flyerId])
+  @@index([productId])
+}
+
+model PriceHistory {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  chainId    String
+  chain      Chain    @relation(fields: [chainId], references: [id])
+  storeId    String?
+  store      Store?   @relation(fields: [storeId], references: [id])
+  price      Float
+  unitPrice  Float
+  observedAt DateTime @default(now())
+
+  @@index([productId, observedAt])
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  lat               Float?
+  lng               Float?
+  preferredChainIds String[] @default([])
+
+  listItems ShoppingListItem[]
+  alerts    Alert[]
+}
+
+model ShoppingListItem {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  productId    String?
+  product      Product? @relation(fields: [productId], references: [id])
+  freeTextName String?
+  quantity     Float    @default(1)
+  addedAt      DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum AlertThresholdType {
+  PRICE_DROP
+  ANY_OFFER
+}
+
+enum AlertChannel {
+  PUSH
+  EMAIL
+}
+
+model Alert {
+  id            String             @id @default(cuid())
+  userId        String
+  user          User               @relation(fields: [userId], references: [id])
+  productId     String?
+  product       Product?           @relation(fields: [productId], references: [id])
+  categoryId    String?
+  thresholdType AlertThresholdType
+  channel       AlertChannel
+
+  @@index([userId])
+}
