@@ -9,8 +9,9 @@ import { esselungaAdapter } from "./adapters/esselunga";
 import { tigrosAdapter } from "./adapters/ebsn";
 import { ekomAdapter } from "./adapters/ekom";
 import { aldiAdapter } from "./adapters/aldi";
+import { conadAdapter } from "./adapters/conad";
 
-const adapters: ChainAdapter[] = [lidlAdapter, pennyAdapter, eurospinAdapter, esselungaAdapter, tigrosAdapter, ekomAdapter, aldiAdapter];
+const adapters: ChainAdapter[] = [lidlAdapter, pennyAdapter, eurospinAdapter, esselungaAdapter, tigrosAdapter, ekomAdapter, aldiAdapter, conadAdapter];
 const args = process.argv.slice(2);
 const catalogMode = args.includes("--catalog");
 const DATA_DIR = path.resolve(import.meta.dirname, "../../../data", catalogMode ? "catalog" : "offers");

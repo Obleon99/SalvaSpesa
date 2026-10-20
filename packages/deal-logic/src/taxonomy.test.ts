@@ -20,7 +20,9 @@ test("non confonde prodotti con parole ambigue", () => {
   assert.equal(classify("Olio extravergine di oliva").group, "grassi");
   assert.equal(classify("Fanta arancia 1,5 l").sub, "gassate");
   assert.equal(classify("Fantasia di funghi").group !== "bevande", true);
-  assert.equal(classify("Purina gatto con tacchino").group, "altro");
+  assert.equal(classify("Purina gatto con tacchino").group, "animali");
+  assert.equal(classify("Cesari Amarone Valpolicella DOCG").group, "bevande");
+  assert.equal(classify("Wurstel hot dog").group, "proteine");
 });
 
 test("raggruppa carboidrati, bevande e bevande calde", () => {

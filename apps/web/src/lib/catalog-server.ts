@@ -10,7 +10,7 @@ const CATALOG_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_RESULTS = 240;
 
 // Insegne di cui riusciamo a leggere il listino prodotti (con prezzo) dal sito pubblico.
-export const CATALOG_CHAINS = new Set(["tigros", "eurospin", "aldi"]);
+export const CATALOG_CHAINS = new Set(["tigros", "eurospin", "aldi", "conad"]);
 
 export interface Seasonality {
   label: string;
@@ -114,7 +114,7 @@ export async function searchCatalog(favorites: FavoriteRef[], query: CatalogQuer
   const now = Date.now();
   const month = new Date(now).getMonth() + 1;
   const tokens = queryTokens(query.q);
-  const wantsPetFood = PET_FOOD.test(normalizeText(query.q)) || query.group === "altro" || query.sub === "animali";
+  const wantsPetFood = PET_FOOD.test(normalizeText(query.q)) || query.group === "animali";
   const chainIds = [...new Set(favorites.map((f) => f.chainId))];
 
   const offersResponse = await getOffersForFavorites(favorites);
@@ -172,7 +172,7 @@ export async function searchCatalog(favorites: FavoriteRef[], query: CatalogQuer
   for (const hit of byKey.values()) {
     if (tokens.length > 0) {
       const haystack = normalizeText(`${hit.brand ?? ""} ${hit.name} ${hit.packageText ?? ""} ${hit.category ?? ""}`);
-      if (!wantsPetFood && hit.sub === "animali") continue;
+      if (!wantsPetFood && hit.group === "animali") continue;
       const compact = haystack.replace(/ /g, "");
       if (!tokens.every((token) => hasTerm(haystack, token) || compact.includes(token))) continue;
     } else if (!query.group) {

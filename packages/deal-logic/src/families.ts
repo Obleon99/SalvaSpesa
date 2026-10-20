@@ -2,7 +2,7 @@ import { GROUPS, type GroupId } from "./taxonomy";
 
 export type CategoryId = GroupId;
 
-export const CATEGORIES: { id: CategoryId; label: string; icon: string }[] = GROUPS.filter((group) => group.id !== "altro").map(({ id, label, icon }) => ({ id, label, icon }));
+export const CATEGORIES: { id: CategoryId; label: string; icon: string }[] = GROUPS.filter((group) => group.id !== "altro" && group.id !== "animali").map(({ id, label, icon }) => ({ id, label, icon }));
 
 export interface FamilyDef {
   id: string;

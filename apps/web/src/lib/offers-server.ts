@@ -10,6 +10,7 @@ const SCRAPERS_DIR = path.resolve(process.cwd(), "../scrapers");
 const TSX_CLI = path.join(SCRAPERS_DIR, "node_modules", "tsx", "dist", "cli.mjs");
 const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const SCRAPE_TIMEOUT_MS = 4 * 60 * 1000;
+const CATALOG_TIMEOUT_MS = 15 * 60 * 1000;
 const MAX_STORE_DISTANCE_KM = 1;
 const USER_AGENT = "Mozilla/5.0 (compatible; SpesaChiaraBot/0.1; progetto personale di confronto prezzi)";
 
@@ -21,6 +22,7 @@ const CHAIN_NAMES: Record<string, string> = {
   tigros: "Tigros",
   ekom: "Ekom",
   aldi: "Aldi",
+  conad: "Conad",
 };
 
 export const CHAIN_DISPLAY_NAMES = CHAIN_NAMES;
@@ -174,7 +176,7 @@ export function runScraper(chainId: string, storeCodes: string[], catalog = fals
       stdio: "ignore",
       windowsHide: true,
     });
-    const timer = setTimeout(() => child.kill(), SCRAPE_TIMEOUT_MS);
+    const timer = setTimeout(() => child.kill(), catalog ? CATALOG_TIMEOUT_MS : SCRAPE_TIMEOUT_MS);
     child.on("error", () => {
       clearTimeout(timer);
       resolve(false);
