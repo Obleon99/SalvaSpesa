@@ -8,15 +8,18 @@ import { eurospinAdapter } from "./adapters/eurospin";
 import { esselungaAdapter } from "./adapters/esselunga";
 import { tigrosAdapter } from "./adapters/ebsn";
 import { ekomAdapter } from "./adapters/ekom";
+import { aldiAdapter } from "./adapters/aldi";
 
-const adapters: ChainAdapter[] = [lidlAdapter, pennyAdapter, eurospinAdapter, esselungaAdapter, tigrosAdapter, ekomAdapter];
-const DATA_DIR = path.resolve(import.meta.dirname, "../../../data/offers");
+const adapters: ChainAdapter[] = [lidlAdapter, pennyAdapter, eurospinAdapter, esselungaAdapter, tigrosAdapter, ekomAdapter, aldiAdapter];
+const args = process.argv.slice(2);
+const catalogMode = args.includes("--catalog");
+const DATA_DIR = path.resolve(import.meta.dirname, "../../../data", catalogMode ? "catalog" : "offers");
 
 async function run(adapter: ChainAdapter): Promise<boolean> {
   const startedAt = Date.now();
   console.log(`\n== ${adapter.chainName}`);
   try {
-    const result = await adapter.scrape();
+    const result = catalogMode ? await adapter.scrapeCatalog!() : await adapter.scrape();
     const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
     const withImage = result.offers.filter((o) => o.imageUrl).length;
     const withUnit = result.offers.filter((o) => o.unitPrice !== null).length;
@@ -64,13 +67,12 @@ interface Tracked {
 // --tracked: aggiorna solo le insegne e i negozi che l'app ha registrato in data/tracked.json (scritto dall'app web).
 async function loadTracked(): Promise<Tracked | null> {
   try {
-    return JSON.parse(await readFile(path.resolve(DATA_DIR, "../tracked.json"), "utf8")) as Tracked;
+    return JSON.parse(await readFile(path.resolve(import.meta.dirname, "../../../data/tracked.json"), "utf8")) as Tracked;
   } catch {
     return null;
   }
 }
 
-const args = process.argv.slice(2);
 const useTracked = args.includes("--tracked");
 const requested = args.filter((arg) => !arg.startsWith("--"));
 
@@ -82,7 +84,8 @@ if (useTracked) {
 }
 
 const wanted = requested.length > 0 ? requested : useTracked && tracked ? (tracked.chains ?? []) : null;
-const selected = wanted ? adapters.filter((a) => wanted.includes(a.chainId)) : adapters;
+const available = catalogMode ? adapters.filter((a) => a.scrapeCatalog) : adapters;
+const selected = wanted ? available.filter((a) => wanted.includes(a.chainId)) : available;
 if (selected.length === 0 && useTracked && requested.length === 0) {
   console.log("Nessun supermercato preferito registrato: niente da aggiornare.");
   process.exit(0);

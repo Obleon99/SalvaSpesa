@@ -7,7 +7,7 @@
   "types": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/compare.test.ts src/plan.test.ts"
+    "test": "tsx --test src/compare.test.ts src/plan.test.ts src/taxonomy.test.ts"
   },
   "dependencies": {
     "@salvaspesa/shared-types": "workspace:*"

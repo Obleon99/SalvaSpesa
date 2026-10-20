@@ -11,6 +11,7 @@ import { householdSize, useUserState } from "@/lib/user-state";
 const navItems = [
   { label: "Volantini & Offerte", href: "/volantini" },
   { label: "Confronta Prodotti & Prezzi", href: "/" },
+  { label: "Cerca Prodotti", href: "/cerca" },
   { label: "Mappa Supermercati", href: "/supermercati" },
 ];
 

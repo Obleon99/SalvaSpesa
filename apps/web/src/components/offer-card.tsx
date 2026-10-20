@@ -1,11 +1,20 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Icon } from "./icon";
 import { expiryLabel, daysLeft, formatPrice, formatUnitPrice } from "@/lib/offer-search";
 import type { CompareOffer } from "@/lib/use-comparison";
 import { useOfferActions } from "@/lib/use-offer-actions";
 
-export function OfferCard({ offer, onOpen }: { offer: CompareOffer; onOpen: (offer: CompareOffer) => void }) {
+interface Props {
+  offer: CompareOffer;
+  onOpen: (offer: CompareOffer) => void;
+  // Prodotto a listino (senza offerta): al posto della scadenza mostra "prezzo di listino".
+  catalog?: boolean;
+  badges?: ReactNode;
+}
+
+export function OfferCard({ offer, onOpen, catalog = false, badges }: Props) {
   const actions = useOfferActions();
   const inCart = actions.inCart(offer);
   const monitored = Boolean(actions.alertFor(offer));
@@ -27,6 +36,7 @@ export function OfferCard({ offer, onOpen }: { offer: CompareOffer; onOpen: (off
           <Icon name="image" className="text-outline text-4xl" />
         )}
       </button>
+      {badges ? <div className="flex flex-wrap gap-1">{badges}</div> : null}
       <div className="min-h-[2.75rem]">
         <h4 className="font-body-sm text-body-sm font-semibold text-on-surface line-clamp-2">{offer.name}</h4>
         {offer.packageText ? <p className="font-label-unit text-label-unit text-on-surface-variant truncate">{offer.packageText}</p> : null}
@@ -38,11 +48,18 @@ export function OfferCard({ offer, onOpen }: { offer: CompareOffer; onOpen: (off
           {unit ? <span className="font-label-unit text-label-unit text-on-surface-variant tabular-nums">{unit}</span> : null}
         </div>
       </div>
-      <div className={`font-label-unit text-label-unit flex items-center gap-1 ${daysLeft(offer.validTo) <= 2 ? "text-error font-bold" : "text-on-surface-variant"}`}>
-        <Icon name="schedule" className="text-sm" />
-        {expiryLabel(offer.validTo)}
-        {offer.requiresLoyaltyCard ? <span className="ml-1 text-on-surface-variant font-normal">• con carta</span> : null}
-      </div>
+      {catalog ? (
+        <div className="font-label-unit text-label-unit flex items-center gap-1 text-on-surface-variant">
+          <Icon name="sell" className="text-sm" />
+          Prezzo di listino
+        </div>
+      ) : (
+        <div className={`font-label-unit text-label-unit flex items-center gap-1 ${daysLeft(offer.validTo) <= 2 ? "text-error font-bold" : "text-on-surface-variant"}`}>
+          <Icon name="schedule" className="text-sm" />
+          {expiryLabel(offer.validTo)}
+          {offer.requiresLoyaltyCard ? <span className="ml-1 text-on-surface-variant font-normal">• con carta</span> : null}
+        </div>
+      )}
       <div className="flex items-center gap-space-xs">
         <button
           onClick={() => actions.toggleCart(offer)}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CATEGORIES, assignFamily } from "@salvaspesa/deal-logic";
+import { GROUPS, classifyProduct, monthName, seasonalProduce, seasonalStatus } from "@salvaspesa/deal-logic";
 import { Icon } from "./icon";
 import { OfferCard } from "./offer-card";
 import { ProductModal } from "./product-modal";
@@ -21,6 +21,10 @@ const SORTS: { id: Sort; label: string }[] = [
 ];
 
 const PAGE = 24;
+
+// La stagionalità vale solo per frutta e verdura fresche, non per prodotti lavorati che ne contengono il nome.
+const freshSeason = (offer: CompareOffer, month: number) =>
+  classifyProduct(offer).storage === "fresco" ? seasonalStatus(offer.name, month) : null;
 
 interface Flyer {
   key: string;
@@ -75,7 +79,7 @@ export function VolantiniView() {
 
   const categoryOf = useMemo(() => {
     const map = new Map<string, string>();
-    for (const offer of active) map.set(offer.id, assignFamily(offer)?.category ?? "altro");
+    for (const offer of active) map.set(offer.id, classifyProduct(offer).group);
     return map;
   }, [active]);
 
@@ -94,11 +98,21 @@ export function VolantiniView() {
       unitario: (a, b) => (a.unitPrice === null ? 1 : 0) - (b.unitPrice === null ? 1 : 0) || comparablePrice(a) - comparablePrice(b),
       scadenza: (a, b) => Date.parse(a.validTo) - Date.parse(b.validTo) || (b.discountPercent ?? 0) - (a.discountPercent ?? 0),
     };
-    return list.sort(sorters[sort]);
+    const sorted = list.sort(sorters[sort]);
+    // Frutta e verdura: prima quella di stagione nel mese corrente (l'ordine scelto resta dentro ogni gruppo).
+    if (category === "frutta-verdura") {
+      const month = new Date().getMonth() + 1;
+      const rank = (offer: CompareOffer) => {
+        const season = freshSeason(offer, month);
+        return season ? (season.inSeason ? 0 : 2) : 1;
+      };
+      return sorted.sort((a, b) => rank(a) - rank(b));
+    }
+    return sorted;
   }, [active, chain, category, query, sort, categoryOf]);
 
   const chains = [...new Map(active.map((o) => [o.chainId, o.chainName])).entries()];
-  const categories = [...CATEGORIES.map((c) => ({ id: c.id as string, label: c.label })), { id: "altro", label: "Altro" }].filter((c) =>
+  const categories = GROUPS.map((c) => ({ id: c.id as string, label: c.label })).filter((c) =>
     active.some((o) => categoryOf.get(o.id) === c.id),
   );
   const problems = offerSources.filter((s) => s.status !== "ok");
@@ -222,13 +236,31 @@ export function VolantiniView() {
             </div>
           </div>
 
+          {category === "frutta-verdura" ? (
+            <div className="bg-primary-fixed/40 rounded-2xl p-space-sm font-body-sm text-body-sm text-on-surface">
+              <strong>Di stagione a {monthName(new Date().getMonth())}:</strong> {[...seasonalProduce(new Date().getMonth() + 1).frutta, ...seasonalProduce(new Date().getMonth() + 1).verdura].join(", ")}. I prodotti di stagione compaiono per primi.
+            </div>
+          ) : null}
+
           <p className="font-label-unit text-label-unit text-on-surface-variant" aria-live="polite">
             {filtered.length.toLocaleString("it-IT")} offerte trovate
           </p>
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-space-sm">
             {filtered.slice(0, shown).map((offer) => (
-              <OfferCard key={offer.id} offer={offer} onOpen={setOpened} />
+              <OfferCard
+                key={offer.id}
+                offer={offer}
+                onOpen={setOpened}
+                badges={(() => {
+                  const season = category === "frutta-verdura" ? freshSeason(offer, new Date().getMonth() + 1) : null;
+                  return season ? (
+                    <span className={`px-1.5 py-0.5 rounded-full font-label-unit text-label-unit font-bold ${season.inSeason ? "bg-primary-fixed text-on-primary-fixed" : "bg-surface-container text-on-surface-variant"}`}>
+                      {season.inSeason ? `Di stagione a ${monthName(new Date().getMonth())}` : "Fuori stagione"}
+                    </span>
+                  ) : undefined;
+                })()}
+              />
             ))}
           </div>
 

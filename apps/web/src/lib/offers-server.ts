@@ -20,7 +20,10 @@ const CHAIN_NAMES: Record<string, string> = {
   esselunga: "Esselunga",
   tigros: "Tigros",
   ekom: "Ekom",
+  aldi: "Aldi",
 };
+
+export const CHAIN_DISPLAY_NAMES = CHAIN_NAMES;
 
 export const SUPPORTED_CHAINS = new Set(Object.keys(CHAIN_NAMES));
 
@@ -158,14 +161,14 @@ const isFresh = (snapshot: Snapshot | null) => snapshot !== null && Date.now() -
 
 const inFlight = new Map<string, Promise<boolean>>();
 
-function runScraper(chainId: string, storeCodes: string[]): Promise<boolean> {
-  const key = `${chainId}:${[...storeCodes].sort().join(",")}`;
+export function runScraper(chainId: string, storeCodes: string[], catalog = false): Promise<boolean> {
+  const key = `${catalog ? "catalog:" : ""}${chainId}:${[...storeCodes].sort().join(",")}`;
   const running = inFlight.get(key);
   if (running) return running;
 
   const job = new Promise<boolean>((resolve) => {
     const env = { ...process.env, ...(chainId === "esselunga" && storeCodes.length > 0 ? { ESSELUNGA_STORES: storeCodes.join(",") } : {}) };
-    const child = spawn(process.execPath, [TSX_CLI, "src/run.ts", chainId], {
+    const child = spawn(process.execPath, [TSX_CLI, "src/run.ts", chainId, ...(catalog ? ["--catalog"] : [])], {
       cwd: SCRAPERS_DIR,
       env,
       stdio: "ignore",

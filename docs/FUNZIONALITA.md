@@ -30,6 +30,15 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[FATTO]** Avviso nella campanella per le offerte del carrello in scadenza (entro 2 giorni)
 - **[FUTURO]** Sfoglia il volantino originale pagina per pagina
 
+## 4b. Catalogo, ricerca e categorie
+- **[FATTO]** Pagina **«Cerca Prodotti»** (`/cerca`, anche dalla barra di ricerca in alto): cerca in **tutti i prodotti dei supermercati preferiti**, unendo le offerte del volantino e il **listino completo** (prezzi a scaffale) dove il sito lo pubblica. Risultati ordinati per prezzo al kg/l, con il prodotto più conveniente indicato (confrontando solo la stessa unità: kg, litro o pezzo)
+- **[FATTO]** Categorie riorganizzate in 8 gruppi con sottocategorie: **Proteine** (carne, salumi, pesce, latticini e formaggi, uova), **Carboidrati** (pasta, riso, pane e pizza, crackers e grissini, farine e cereali), **Frutta e verdura** (frutta, verdura, zuppe e vellutate, legumi e conserve), **Grassi** (olio, burro e margarina, avocado, frutta secca e semi), **Casa e cura persona** (detersivi, carta, shampoo/saponi/bagnoschiuma, dentifrici, creme), **Dolci** (biscotti, merendine, marmellate/miele/creme, torte, gelati, cioccolato e caramelle), **Bevande** (acqua, gassate, energetiche, succhi, bevande vegetali, birra e vino), **Bevande calde** (caffè, tè, tisane). I prodotti non classificabili (animali, snack salati, ecc.) restano in «Altro». La classificazione è a regole sul nome e sul reparto del sito: sbaglia su qualche caso limite (circa il 5% finisce in «Altro»)
+- **[FATTO]** **Carne e pesce freschi o surgelati**: scorciatoie «Carne fresca / Carne surgelata / Pesce fresco / Pesce surgelato» e filtro di conservazione (fresco, surgelato, in scatola/conserva); vale anche per frutta e verdura (anche surgelate) e zuppe
+- **[FATTO]** **Frutta e verdura di stagione**: il mese corrente è indicato («Di stagione a ottobre») con l'elenco dei prodotti del mese; nei risultati e nei volantini i prodotti di stagione compaiono per primi con l'etichetta, gli altri come «Fuori stagione». Calendario italiano sintetizzato (frutta e verdura fresche; i prodotti lavorati non hanno stagione)
+- **[FATTO]** Listini completi (nome, marca, formato, prezzo, €/kg-l, immagine) in `data/catalog/<catena>/latest.json`, aggiornati al volo se mancanti e ogni 24 ore: comando `pnpm --filter @salvaspesa/scrapers exec tsx src/run.ts --catalog [catena]`
+- Cosa dà ogni insegna oggi: **Aldi** ~500 prodotti con prezzo; **Tigros** ~1.700 (il sito mostra il prezzo online solo per una parte del suo catalogo da ~11.400 prodotti); **Eurospin** solo ~80 (sul sito ha prezzo pubblico solo chi è in offerta, su ~4.600 prodotti); **Lidl, Penny, Esselunga, Ekom**: solo offerte del volantino (non pubblicano un listino completo con prezzi). Per le insegne senza dati la pagina lo dice esplicitamente
+- **[PROSSIMO]** Raggruppare lo stesso prodotto tra insegne (EAN o nome+formato) in una sola riga con il prezzo di ogni supermercato
+
 ## 5. Prezzi e storico
 - **[FATTO]** Prezzo normalizzato al kg o al litro (dal volantino o calcolato dal formato) per confrontare formati diversi
 - **[FATTO]** Amazon.it nel tracker (link di ricerca; prezzi e prodotti con le credenziali dell'API ufficiale, vedi sotto)
@@ -40,9 +49,9 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[FATTO]** «Segnala un prezzo»: modulo che salva la segnalazione nel browser e in `data/reports.jsonl`
 
 ## 6. Confronti (pagina «Confronta Prodotti & Prezzi»)
-- **[FATTO]** Confronti calcolati sulle offerte reali dei preferiti, per 15 tipi di prodotto (biscotti, pasta, caffè, latte, olio, tonno, passata, detersivi…): schede **Marca leader / Miglior scelta qualità-prezzo / Massimo risparmio**, risparmio sempre rispetto alla marca leader, consiglio SpesaChiara generato dai dati
+- **[FATTO]** Confronti calcolati sulle offerte reali dei preferiti, per oltre 40 tipi di prodotto (biscotti, pasta, riso, caffè, latte, parmigiano, pollo, manzo, salmone, olio, burro, passata, detersivi, shampoo, dentifricio…): schede **Marca leader / Miglior scelta qualità-prezzo / Massimo risparmio**, risparmio sempre rispetto alla marca leader, consiglio SpesaChiara generato dai dati
 - **[FATTO]** Vista **Schede** e vista **Tabella rapida** (matrice prodotto × insegna con la cella migliore evidenziata e il risparmio al kg/l)
-- **[FATTO]** Filtri per categoria (Dispensa, Oli, Conserve, Freschi, Casa, Bio & Filiera) e per insegna (ricalcolano i confronti)
+- **[FATTO]** Filtri per categoria (le 8 categorie nutrizionali: Proteine, Carboidrati, Frutta e verdura, Grassi, Casa e cura persona, Dolci, Bevande, Bevande calde, più Bio & Filiera) e per insegna (ricalcolano i confronti)
 - **[FATTO]** Banner d'analisi con risparmio medio, benchmark marca leader vs alternativa, risparmio del carrello e **download del confronto in CSV**
 - **[FATTO]** «Criteri di scoring»: spiega come si raggruppano i prodotti, come si distinguono marca leader / marchio del distributore / altra marca e come si calcola il punteggio
 - **[FATTO]** Scheda prodotto (dettagli, etichette di qualità, storico, link al sito), ricerca dall'header che apre il tracker già compilato, pulsante «confronta»
@@ -68,7 +77,7 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[FATTO]** Posizione e punti vendita: OpenStreetMap (Nominatim per gli indirizzi, Overpass per i supermercati)
 - **[FATTO]** Profilo, posizione e preferiti salvati nel browser (localStorage)
 - **[FATTO]** Pacchetto `apps/scrapers`: adapter per catena, validazione con schema condiviso (`ScrapedOffer`), snapshot JSON in `data/offers/<catena>/latest.json` (comando: `pnpm --filter @salvaspesa/scrapers scrape [catena]`)
-- **[FATTO]** Aggiornamento automatico giornaliero: l'app scrive in `data/tracked.json` le insegne e i negozi Esselunga che segui; lo script `apps/scrapers/scripts/scrape-daily.cmd` (`pnpm --filter @salvaspesa/scrapers scrape:tracked`) li aggiorna e salva lo snapshot del giorno, che alimenta lo storico dei prezzi. È pianificato in Windows come attività «SpesaChiara aggiornamento volantini» ogni giorno alle 07:30 (esito in `data/scrape.log`). Per cambiarlo o toglierlo: `schtasks /Delete /TN "SpesaChiara aggiornamento volantini" /F`. Il PC deve essere acceso a quell'ora; se non lo è, i dati si aggiornano comunque alla prima apertura dell'app (dati più vecchi di 6 ore)
+- **[FATTO]** Aggiornamento automatico giornaliero: l'app scrive in `data/tracked.json` le insegne e i negozi Esselunga che segui; lo script `apps/scrapers/scripts/scrape-daily.cmd` (`pnpm --filter @salvaspesa/scrapers scrape:tracked`) li aggiorna e salva lo snapshot del giorno; lo stesso script aggiorna anche i listini completi (`--catalog`), che alimenta lo storico dei prezzi. È pianificato in Windows come attività «SpesaChiara aggiornamento volantini» ogni giorno alle 07:30 (esito in `data/scrape.log`). Per cambiarlo o toglierlo: `schtasks /Delete /TN "SpesaChiara aggiornamento volantini" /F`. Il PC deve essere acceso a quell'ora; se non lo è, i dati si aggiornano comunque alla prima apertura dell'app (dati più vecchi di 6 ore)
 - **[PROSSIMO]** Importare gli snapshot in Postgres (schema già pronto in `apps/backend/prisma`) e collegarli al web
 - **[PROSSIMO]** Abbinare le offerte ai prodotti canonici tra catene (EAN dove c'è, altrimenti marca + nome + formato)
 - **[PROSSIMO]** Collegamento web ↔ backend tRPC al posto dei dati dimostrativi
@@ -88,7 +97,12 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 | Carrefour | **[PROSSIMO]** | Volantino generato da un servizio esterno (youroperator): serve capire se espone dati o solo immagini |
 | Conad | **[FUTURO]** | Volantino in un visualizzatore Shopfully (pagine a immagine): richiede estrazione da immagini/PDF |
 | Pam, Coop | **[FUTURO]** | Contenuto caricato via JavaScript o URL diversi per punto vendita: serve un browser automatico (Playwright) |
-| Aldi | **[FUTURO]** | Il sito blocca le richieste automatiche (403) |
+| Aldi | **[FATTO]** ~500 prodotti (di cui ~80 con prezzo barrato = offerte) | Pagine categoria del sito (`/prodotti/.../k/<id>?page=N`): marca, formato, prezzo, prezzo barrato, €/kg-l, immagine. Aldi non ha un volantino a scadenza fissa online: le offerte sono i prodotti con prezzo barrato, il resto è listino. Esclusi abbigliamento, arredo, stagionali e prodotti «disponibili dal» giorno futuro |
+| MD | **[FUTURO]** | Il sito pubblica solo il volantino come immagini/viewer, nessun elenco prodotti con prezzo leggibile. Riconosciuto sulla mappa e tra i preferiti, ma l'app segnala «non ancora disponibile» |
+| iN's Mercato | **[FUTURO]** | Volantino in un viewer esterno (immagini): nessun dato strutturato. Riconosciuto sulla mappa, segnalato come non disponibile |
+| Coop | **[FUTURO]** | Volantini e prezzi dipendono dalla cooperativa locale e dal punto vendita, caricati via JavaScript: serve un browser automatico. Riconosciuto sulla mappa, segnalato come non disponibile |
+| Iper Tosano | **[FUTURO]** | Il sito pubblica solo il volantino a immagini. Riconosciuto sulla mappa (insegna «Iper Tosano»), segnalato come non disponibile |
+| L'Iper | **[FUTURO]** | `volantini.iper.it` usa un servizio di ricerca (Algolia) con chiave pubblica nel codice, ma il nome dell'indice non è esposto e l'elenco indici richiede una chiave amministrativa: non l'ho aggirato. Riconosciuto sulla mappa, segnalato come non disponibile |
 
 Limiti del tracker: una ricerca generica (es. "tonno") confronta anche prodotti diversi (pizza al tonno) perché si ordina per prezzo al kg/l; funziona meglio con marca e prodotto ("Barilla linguine"). I negozi Esselunga "La Esse" non hanno volantino online.
 

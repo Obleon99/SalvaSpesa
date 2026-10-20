@@ -16,6 +16,8 @@ export interface ChainAdapter {
   chainId: string;
   chainName: string;
   scrape(): Promise<AdapterResult>;
+  // Catalogo completo (prezzi di listino): opzionale, salvato in data/catalog e usato dalla ricerca.
+  scrapeCatalog?(): Promise<AdapterResult>;
 }
 
 // Valida un candidato con lo schema condiviso: gli scarti finiscono in `rejected` con il motivo.

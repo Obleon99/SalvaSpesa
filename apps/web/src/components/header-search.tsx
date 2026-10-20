@@ -12,7 +12,7 @@ export function HeaderSearch() {
     event.preventDefault();
     const query = value.trim();
     if (query.length < 2) return;
-    router.push(`/?q=${encodeURIComponent(query)}#tracker`);
+    router.push(`/cerca?q=${encodeURIComponent(query)}`);
   }
 
   return (
