@@ -6,6 +6,7 @@ dist
 *.log
 .DS_Store
 .claude/settings.local.json
+data/
 .next/
 out/
 *.tsbuildinfo

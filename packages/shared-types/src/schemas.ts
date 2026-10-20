@@ -85,6 +85,34 @@ export const OfferSchema = z.object({
 });
 export type Offer = z.infer<typeof OfferSchema>;
 
+export const PricingUnitSchema = z.enum(["kg", "l", "pz"]);
+export type PricingUnit = z.infer<typeof PricingUnitSchema>;
+
+export const ScrapedOfferSchema = z.object({
+  chainId: z.string().min(1),
+  externalId: z.string().min(1),
+  sourceUrl: z.string().url(),
+  name: z.string().min(1),
+  brand: z.string().nullable(),
+  description: z.string().nullable(),
+  imageUrl: z.string().url().nullable(),
+  category: z.string().nullable(),
+  price: z.number().positive(),
+  originalPrice: z.number().positive().nullable(),
+  discountPercent: z.number().min(0).max(100).nullable(),
+  requiresLoyaltyCard: z.boolean(),
+  packageText: z.string().nullable(),
+  unitPrice: z.number().positive().nullable(),
+  unit: PricingUnitSchema.nullable(),
+  validFrom: z.string().datetime(),
+  validTo: z.string().datetime(),
+  scrapedAt: z.string().datetime(),
+  storeCode: z.string().nullish(),
+  ean: z.string().nullish(),
+  channel: z.enum(["volantino", "online"]).nullish(),
+});
+export type ScrapedOffer = z.infer<typeof ScrapedOfferSchema>;
+
 export const PriceHistoryEntrySchema = z.object({
   id: z.string(),
   productId: z.string(),

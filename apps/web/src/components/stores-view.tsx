@@ -1,9 +1,15 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { Icon } from "./icon";
 import { formatDistance, type StoreWithDistance } from "@/lib/geo";
 import { useUserState } from "@/lib/user-state";
+
+const StoresMap = dynamic(() => import("./stores-map").then((m) => m.StoresMap), {
+  ssr: false,
+  loading: () => <div className="w-full h-[420px] rounded-2xl bg-surface-container-low animate-pulse" />,
+});
 
 function StoreCard({ store }: { store: StoreWithDistance }) {
   const { isFavorite, toggleFavorite } = useUserState();
@@ -51,6 +57,8 @@ export function StoresView() {
   const { ready, location, radiusKm, stores, storesStatus, refreshStores, favorites, openDialog } = useUserState();
   const [chainFilter, setChainFilter] = useState<string | null>(null);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [mode, setMode] = useState<"lista" | "mappa">("mappa");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const chains = useMemo(() => {
     const counts = new Map<string, { name: string; count: number }>();
@@ -66,6 +74,8 @@ export function StoresView() {
   const visible = stores.filter(
     (store) => (!chainFilter || store.chainId === chainFilter) && (!onlyFavorites || favoriteIds.has(store.id)),
   );
+
+  const selectedStore = stores.find((store) => store.id === selectedId) ?? null;
 
   return (
     <>
@@ -156,6 +166,20 @@ export function StoresView() {
                 </button>
               ))}
             </div>
+            <div className="flex items-center gap-space-sm shrink-0">
+              <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl" role="group" aria-label="Vista">
+                {(["mappa", "lista"] as const).map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setMode(value)}
+                    aria-pressed={mode === value}
+                    className={`px-space-sm py-1 rounded-lg font-body-sm text-body-sm flex items-center gap-1 ${mode === value ? "bg-surface-container-lowest text-primary font-semibold shadow-sm" : "text-on-surface-variant"}`}
+                  >
+                    <Icon name={value === "mappa" ? "map" : "view_list"} className="text-base" />
+                    {value === "mappa" ? "Mappa" : "Elenco"}
+                  </button>
+                ))}
+              </div>
             <label className="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface cursor-pointer shrink-0">
               <input
                 type="checkbox"
@@ -165,6 +189,7 @@ export function StoresView() {
               />
               Solo preferiti
             </label>
+            </div>
           </div>
 
           {storesStatus === "loading" ? (
@@ -203,11 +228,24 @@ export function StoresView() {
             <p className="font-body-md text-body-md text-on-surface-variant">Nessun supermercato con questi filtri.</p>
           ) : null}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-space-sm">
-            {visible.map((store) => (
-              <StoreCard key={store.id} store={store} />
-            ))}
-          </div>
+          {mode === "mappa" && location ? (
+            <div className="flex flex-col gap-space-sm">
+              <StoresMap stores={visible} favoriteIds={favoriteIds} center={location} radiusKm={radiusKm} selectedId={selectedId} onSelect={(store) => setSelectedId(store.id)} />
+              {selectedStore ? (
+                <StoreCard store={selectedStore} />
+              ) : (
+                <p className="font-label-unit text-label-unit text-on-surface-variant">
+                  Tocca un punto sulla mappa per vedere il negozio e aggiungerlo ai preferiti. In verde i preferiti, in grigio gli altri.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-space-sm">
+              {visible.map((store) => (
+                <StoreCard key={store.id} store={store} />
+              ))}
+            </div>
+          )}
 
           <p className="font-label-unit text-label-unit text-outline">
             Punti vendita: dati © contributori{" "}

@@ -19,6 +19,8 @@ const chainRules: ChainRule[] = [
   { id: "famila", name: "Famila", pattern: /famila|superstore/i },
   { id: "bennet", name: "Bennet", pattern: /bennet/i },
   { id: "tigros", name: "Tigros", pattern: /tigros/i },
+  { id: "ekom", name: "Ekom", pattern: /\bekom\b/i },
+  { id: "gulliver", name: "Gulliver", pattern: /gulliver/i },
   { id: "iper", name: "Iper", pattern: /\biper\b|la grande i/i },
   { id: "todis", name: "Todis", pattern: /todis/i },
   { id: "ins", name: "In's", pattern: /\bin'?s\b/i },

@@ -1,0 +1,23 @@
+{
+  "name": "@salvaspesa/scrapers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "scrape": "tsx src/run.ts",
+    "scrape:tracked": "tsx src/run.ts --tracked",
+    "test": "tsx --test src/parse.test.ts src/ekom-parse.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@salvaspesa/shared-types": "workspace:*",
+    "cheerio": "^1.0.0",
+    "pdfjs-dist": "^4.10.38",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.10",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}

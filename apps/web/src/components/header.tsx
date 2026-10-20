@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { HeaderSearch } from "./header-search";
 import { Icon } from "./icon";
+import { NotificationsBell } from "./notifications-bell";
+import { formatPrice } from "@/lib/offer-search";
 import { householdSize, useUserState } from "@/lib/user-state";
 
 const navItems = [
-  { label: "Volantini & Offerte", href: "#" },
+  { label: "Volantini & Offerte", href: "/volantini" },
   { label: "Confronta Prodotti & Prezzi", href: "/" },
   { label: "Mappa Supermercati", href: "/supermercati" },
 ];
@@ -17,7 +20,9 @@ const navIdle = `${navBase} font-medium text-on-surface-variant hover:bg-surface
 
 export function Header() {
   const pathname = usePathname();
-  const { ready, profile, location, radiusKm, stores, storesStatus, favorites, openDialog } = useUserState();
+  const { ready, profile, location, radiusKm, stores, storesStatus, favorites, offersGeneratedAt, cart, openDialog } = useUserState();
+  const cartSavings = cart.reduce((sum, item) => sum + Math.max(0, (item.originalPrice ?? item.price) - item.price) * (item.quantity ?? 1), 0);
+  const cartBadge = cartSavings > 0 ? `Risparmi ${formatPrice(cartSavings)}` : cart.length > 0 ? `${cart.length} ${cart.length === 1 ? "articolo" : "articoli"}` : null;
 
   const nearbyCount = stores.length;
   const favoriteCount = favorites.length;
@@ -80,14 +85,7 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-space-sm">
-            <div className="relative hidden sm:flex items-center">
-              <Icon name="search" className="absolute left-3 text-outline text-lg pointer-events-none" />
-              <input
-                className="w-48 xl:w-72 bg-surface-container-lowest pl-9 pr-3 py-1.5 rounded-full font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                placeholder="Cerca prodotti, marchi es. Nutella, Barilla..."
-                type="text"
-              />
-            </div>
+            <HeaderSearch />
             <button
               onClick={() => openDialog("location")}
               aria-label="Imposta la posizione"
@@ -95,15 +93,7 @@ export function Header() {
             >
               <Icon name="location_on" className="text-xl" />
             </button>
-            <button
-              aria-label="Notifiche volantini in scadenza"
-              className="relative p-1.5 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant hover:text-on-surface flex items-center justify-center"
-            >
-              <Icon name="notifications" className="text-xl" />
-              <span className="absolute -top-0.5 -right-0.5 font-label-caps text-[10px] w-4 h-4 bg-error text-on-error rounded-full flex items-center justify-center font-bold">
-                3
-              </span>
-            </button>
+            <NotificationsBell />
             <button
               onClick={() => openDialog("profile")}
               aria-label="Apri il profilo"
@@ -139,16 +129,26 @@ export function Header() {
                 </Link>
               );
             })}
-            <Link href="#" className={`${navIdle} inline-flex items-center gap-space-xs`}>
+            <Link
+              href="/carrello"
+              aria-current={pathname === "/carrello" ? "page" : undefined}
+              className={`${pathname === "/carrello" ? navActive : navIdle} inline-flex items-center gap-space-xs`}
+            >
               <span>Carrello Risparmio Famiglia</span>
-              <span className="font-label-caps text-label-caps px-space-xs py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold tracking-tight">
-                Risparmi 24,50€
-              </span>
+              {cartBadge ? (
+                <span className="font-label-caps text-label-caps px-space-xs py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold tracking-tight">
+                  {cartBadge}
+                </span>
+              ) : null}
             </Link>
           </nav>
           <div className="hidden md:flex items-center gap-space-xs text-outline font-label-unit text-label-unit shrink-0">
             <Icon name="verified" className="text-sm text-primary" />
-            <span>Prezzi verificati oggi: 08:30</span>
+            <span>
+              {offersGeneratedAt
+                ? `Offerte aggiornate: ${new Date(offersGeneratedAt).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                : "Scegli i preferiti per vedere le offerte"}
+            </span>
           </div>
         </div>
       </div>
