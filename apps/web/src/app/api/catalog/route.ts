@@ -45,13 +45,14 @@ export async function POST(request: Request) {
   const sub = optionalId(body.sub);
   const storage = optionalId(body.storage);
   const chain = optionalId(body.chain);
+  const groups = Array.isArray(body.groups) ? body.groups.filter((g): g is string => typeof g === "string" && ID.test(g)).slice(0, 20) : [];
   if (!favorites || group === null || sub === null || storage === null || chain === null) {
     return NextResponse.json({ error: "Richiesta non valida" }, { status: 400 });
   }
-  if (q.length < 2 && !group) return NextResponse.json({ error: "Scrivi almeno due lettere" }, { status: 400 });
+  if (q.length < 2 && !group && groups.length === 0) return NextResponse.json({ error: "Scrivi almeno due lettere" }, { status: 400 });
 
   try {
-    return NextResponse.json(await searchCatalog(favorites, { q, group, sub, storage, chain }));
+    return NextResponse.json(await searchCatalog(favorites, { q, group, groups, sub, storage, chain }));
   } catch {
     return NextResponse.json({ error: "Non riesco a cercare nel catalogo, riprova tra poco" }, { status: 500 });
   }

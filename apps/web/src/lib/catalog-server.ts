@@ -50,6 +50,7 @@ export interface CatalogResponse {
 export interface CatalogQuery {
   q: string;
   group?: string;
+  groups?: string[];
   sub?: string;
   storage?: string;
   chain?: string;
@@ -190,7 +191,9 @@ export async function searchCatalog(favorites: FavoriteRef[], query: CatalogQuer
     return counts;
   };
 
-  const byChain = query.chain ? matches.filter((hit) => hit.chainId === query.chain) : matches;
+  const wanted = query.groups ?? [];
+  const preferred = wanted.length > 0 ? matches.filter((hit) => wanted.includes(hit.group)) : matches;
+  const byChain = query.chain ? preferred.filter((hit) => hit.chainId === query.chain) : preferred;
   const byGroup = query.group ? byChain.filter((hit) => hit.group === query.group) : byChain;
   const bySub = query.sub ? byGroup.filter((hit) => hit.sub === query.sub) : byGroup;
   const filtered = query.storage ? bySub.filter((hit) => hit.storage === query.storage) : bySub;
@@ -213,7 +216,7 @@ export async function searchCatalog(favorites: FavoriteRef[], query: CatalogQuer
     groups: tally(byChain, (hit) => hit.group),
     subs: tally(byGroup, (hit) => hit.sub),
     storages: tally(bySub, (hit) => hit.storage),
-    chains: tally(matches, (hit) => hit.chainId),
+    chains: tally(preferred, (hit) => hit.chainId),
     sources,
   };
 }

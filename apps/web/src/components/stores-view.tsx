@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { Icon } from "./icon";
+import { StoreDetailDialog } from "./store-detail-dialog";
 import { formatDistance, type StoreWithDistance } from "@/lib/geo";
 import { useUserState } from "@/lib/user-state";
 
@@ -11,7 +12,7 @@ const StoresMap = dynamic(() => import("./stores-map").then((m) => m.StoresMap),
   loading: () => <div className="w-full h-[420px] rounded-2xl bg-surface-container-low animate-pulse" />,
 });
 
-function StoreCard({ store }: { store: StoreWithDistance }) {
+function StoreCard({ store, onOpen }: { store: StoreWithDistance; onOpen: (store: StoreWithDistance) => void }) {
   const { isFavorite, toggleFavorite } = useUserState();
   const favorite = isFavorite(store.id);
 
@@ -21,6 +22,7 @@ function StoreCard({ store }: { store: StoreWithDistance }) {
         favorite ? "ring-2 ring-primary" : ""
       }`}
     >
+      <button type="button" onClick={() => onOpen(store)} aria-label={`Dettagli di ${store.name}`} className="flex flex-1 min-w-0 items-center gap-space-sm text-left">
       <div className="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center font-title-md text-title-md font-bold text-primary shrink-0">
         {store.chainName.charAt(0)}
       </div>
@@ -31,6 +33,7 @@ function StoreCard({ store }: { store: StoreWithDistance }) {
           {store.address ? ` • ${store.address}` : ""}
         </div>
       </div>
+      </button>
       <div className="flex flex-col items-end gap-1 shrink-0">
         <span className="font-label-unit text-label-unit font-bold text-tertiary tabular-nums">
           {formatDistance(store.distanceKm)}
@@ -59,6 +62,7 @@ export function StoresView() {
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [mode, setMode] = useState<"lista" | "mappa">("mappa");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<StoreWithDistance | null>(null);
 
   const chains = useMemo(() => {
     const counts = new Map<string, { name: string; count: number }>();
@@ -81,7 +85,7 @@ export function StoresView() {
     <>
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-space-sm">
         <div className="flex flex-col">
-          <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight">Supermercati vicino a te</h1>
+          <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight">La mia zona</h1>
           <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
             {ready && location ? (
               <>
@@ -132,7 +136,7 @@ export function StoresView() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-space-sm">
             {favorites.map((store) => (
-              <StoreCard key={store.id} store={store} />
+              <StoreCard key={store.id} store={store} onOpen={setDetail} />
             ))}
           </div>
         </section>
@@ -232,7 +236,7 @@ export function StoresView() {
             <div className="flex flex-col gap-space-sm">
               <StoresMap stores={visible} favoriteIds={favoriteIds} center={location} radiusKm={radiusKm} selectedId={selectedId} onSelect={(store) => setSelectedId(store.id)} />
               {selectedStore ? (
-                <StoreCard store={selectedStore} />
+                <StoreCard store={selectedStore} onOpen={setDetail} />
               ) : (
                 <p className="font-label-unit text-label-unit text-on-surface-variant">
                   Tocca un punto sulla mappa per vedere il negozio e aggiungerlo ai preferiti. In verde i preferiti, in grigio gli altri.
@@ -242,7 +246,7 @@ export function StoresView() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-space-sm">
               {visible.map((store) => (
-                <StoreCard key={store.id} store={store} />
+                <StoreCard key={store.id} store={store} onOpen={setDetail} />
               ))}
             </div>
           )}
@@ -256,6 +260,7 @@ export function StoresView() {
           </p>
         </section>
       ) : null}
+      {detail ? <StoreDetailDialog store={detail} onClose={() => setDetail(null)} /> : null}
     </>
   );
 }

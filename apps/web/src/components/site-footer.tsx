@@ -1,9 +1,5 @@
 const footerColumns = [
   {
-    title: "Supermercati Partner",
-    links: ["Esselunga, Conad, Coop", "Eurospin, Lidl, Aldi", "Carrefour & Bennet", "Invia volantino locale"],
-  },
-  {
     title: "Trasparenza Prezzi",
     links: [
       "Metodologia Benchmark €/kg",
@@ -27,7 +23,7 @@ export function SiteFooter() {
   return (
     <footer className="bg-surface-container-low">
       <div className="max-w-7xl mx-auto w-full px-margin md:px-margin-tablet lg:px-margin-desktop py-space-2xl flex flex-col gap-space-xl">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-space-lg">
           <div className="flex flex-col gap-space-xs">
             <span className="font-title-md text-title-md text-primary font-bold">SpesaChiara</span>
             <p className="font-body-sm text-body-sm text-on-surface-variant max-w-xs">
@@ -56,7 +52,7 @@ export function SiteFooter() {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-space-sm pt-space-md border-t border-outline-variant/40">
           <p className="font-label-unit text-label-unit text-on-surface-variant">
-            © 2025 SpesaChiara S.r.l. - Tutti i marchi e i volantini appartengono ai rispettivi proprietari della GDO.
+            Tutti i marchi e i volantini appartengono ai rispettivi proprietari della GDO.
           </p>
           <div className="flex items-center gap-space-md">
             <a href="#" className="font-label-unit text-label-unit text-on-surface-variant hover:text-primary">

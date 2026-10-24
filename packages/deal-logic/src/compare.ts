@@ -2,6 +2,7 @@ import { classifyBrand, qualityLabels, type BrandTier } from "./brands";
 import { FAMILIES, type FamilyDef } from "./families";
 import { hasTerm, normalizeText, parseQuantity } from "./text";
 import { median } from "./stats";
+import { classifyProduct } from "./taxonomy";
 
 export interface ComparableOffer {
   id: string;
@@ -51,6 +52,8 @@ export interface ComparisonGroup<T extends ComparableOffer = ComparableOffer> {
 const OUTLIER_FACTOR = 6;
 
 export function assignFamily(offer: Pick<ComparableOffer, "brand" | "name">, families: FamilyDef[] = FAMILIES): FamilyDef | null {
+  // Il cibo e gli articoli per animali non entrano mai nei confronti alimentari.
+  if (classifyProduct(offer).group === "animali") return null;
   const haystack = normalizeText(`${offer.brand ?? ""} ${offer.name}`);
   for (const family of families) {
     if (family.exclude?.some((term) => hasTerm(haystack, term))) continue;

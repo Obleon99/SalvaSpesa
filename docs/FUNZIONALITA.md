@@ -3,6 +3,7 @@
 Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTURO]** più avanti
 
 ## 1. Posizione e supermercati vicini
+- **[FATTO]** Interfaccia semplificata: un'unica barra con menu (Offerte, Confronta, Cerca, Carrello), ricerca, «La mia zona» (posizione, preferiti e mappa nella stessa pagina) e account
 - **[FATTO]** Posizione dell'utente: geolocalizzazione del browser oppure inserimento manuale (CAP, città, indirizzo)
 - **[FATTO]** Raggio di ricerca regolabile (1–20 km)
 - **[FATTO]** Elenco dei supermercati nel raggio (da OpenStreetMap), con catena riconosciuta, indirizzo e distanza
@@ -23,7 +24,8 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[PROSSIMO]** Preferenze alimentari (bio, senza glutine, senza lattosio, vegetariano…) che filtrano offerte e confronti
 - **[PROSSIMO]** Marchi/prodotti "irrinunciabili" (es. Barilla) per cui non si accettano sostituzioni
 - **[FUTURO]** Più profili in famiglia e condivisione della lista della spesa
-- **[FUTURO]** Account e sincronizzazione tra dispositivi (oggi i dati stanno nel browser)
+- **[FATTO]** Registrazione e accesso con email e password: posizione, preferiti, carrello, avvisi e profilo si salvano nell'account e si ritrovano su ogni dispositivo (account in `data/accounts`, password con scrypt, sessione in cookie httpOnly). All'uscita il browser viene svuotato.
+- **[PROSSIMO]** Recupero password via email e database vero al posto dei file quando l'app esce dal computer di casa
 
 ## 4. Volantini e offerte
 - **[FATTO]** Pagina «Volantini & Offerte»: un riquadro per ogni volantino dei preferiti (offerte, scadenza, link al sito) e un esploratore di tutte le offerte attive (ricerca, insegna, categoria, ordinamento per sconto / prezzo / prezzo al kg-l / scadenza), con aggiunta al carrello, avviso e scheda prodotto

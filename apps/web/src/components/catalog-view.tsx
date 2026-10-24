@@ -35,7 +35,8 @@ const chip = (on: boolean, tone: "primary" | "tertiary" | "secondary" = "primary
   }`;
 
 export function CatalogView() {
-  const { ready, favorites, location } = useUserState();
+  const { ready, favorites, location, profile } = useUserState();
+  const wantedGroups = profile.categories;
   const initial = useSearchParams().get("q") ?? "";
   const [input, setInput] = useState(initial);
   const [query, setQuery] = useState(initial);
@@ -77,7 +78,7 @@ export function CatalogView() {
     fetch("/api/catalog", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stores, q: query, group: group ?? "", sub: sub ?? "", storage: storage ?? "", chain: chain ?? "" }),
+      body: JSON.stringify({ stores, q: query, group: group ?? "", groups: wantedGroups, sub: sub ?? "", storage: storage ?? "", chain: chain ?? "" }),
       signal: controller.signal,
     })
       .then((response) => {
@@ -93,7 +94,7 @@ export function CatalogView() {
       });
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, storesKey, query, group, sub, storage, chain]);
+  }, [ready, storesKey, query, group, sub, storage, chain, wantedGroups.join(",")]);
 
   const month = data?.month ?? new Date().getMonth() + 1;
   const monthLabel = monthName(month - 1);
@@ -176,7 +177,7 @@ export function CatalogView() {
         </div>
 
         <div className="flex flex-wrap gap-space-xs" role="group" aria-label="Categorie">
-          {GROUPS.filter((g) => g.id !== "altro").map((g) => (
+          {GROUPS.filter((g) => g.id !== "altro" && (wantedGroups.length === 0 || wantedGroups.includes(g.id))).map((g) => (
             <button key={g.id} onClick={() => pickGroup(g.id)} aria-pressed={group === g.id} className={`${chip(group === g.id, "tertiary")} inline-flex items-center gap-1`}>
               <Icon name={g.icon} className="text-base" />
               {g.label}

@@ -3,7 +3,7 @@ import { PageShell } from "@/components/page-shell";
 import { StoresView } from "@/components/stores-view";
 
 export const metadata: Metadata = {
-  title: "Supermercati vicino a te · SpesaChiara",
+  title: "La mia zona · SpesaChiara",
 };
 
 export default function StoresPage() {

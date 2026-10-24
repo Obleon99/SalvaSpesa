@@ -163,7 +163,7 @@ interface Rule {
 
 const match = (haystack: string, term: string): boolean => (term.startsWith("=") ? hasWholeTerm(haystack, term.slice(1)) : hasTerm(haystack, term));
 
-const PET = ["gatto", "gatti", "cane", "cani", "crocchett", "felix", "purina", "whiskas", "sheba", "=cesar", "kitekat", "pedigree", "friskies", "schesir", "monge", "animonda", "lettiera", "=cat", "dog food", "gourmet gold", "gourmet perle", "gourmet a la carte", "gourmet soup", "mon petit", "migliorcane", "migliorgatto", "vitakraft", "dreamies", "perfect fit", "bonzo", "=ultima", "animali", "adoc", "romeo", "almo nature", "marpet", "bifensis", "hairball", "urinary", "croccantini", "bocconcini per", "per cani", "per gatti", "migliorcane"];
+const PET = ["gatto", "gatti", "cane", "cani", "crocchett", "felix", "purina", "whiskas", "sheba", "=cesar", "kitekat", "pedigree", "friskies", "schesir", "monge", "animonda", "lettiera", "=cat", "dog food", "gourmet gold", "gourmet perle", "gourmet a la carte", "gourmet soup", "mon petit", "migliorcane", "migliorgatto", "vitakraft", "dreamies", "perfect fit", "bonzo", "=ultima", "animali", "adoc", "romeo", "almo nature", "marpet", "bifensis", "hairball", "urinary", "croccantini", "cibo umido", "cibo secco", "=chat", "lechat", "gemon", "affinity", "exclusion", "kitten", "gattin", "cucciol", "lindocat", "natural trainer", "royal canin", "pro plan", "hill s", "applaws", "bocconcini per", "per cani", "per gatti", "migliorcane"];
 const FROZEN_TERMS = ["surgelat", "congelat", "frozen", "findus", "4 salti", "orogel", "bofrost", "frosta", "igloo"];
 const CANNED_TERMS = ["scatola", "sott olio", "sott aceto", "barattolo", "sgocciolat", "in conserva", "al naturale", "all olio", "in olio", "vasetto", "affumicat", "essiccat", "secco", "secca", "stagionat", "sottaceto", "sottolio", "in latta", "latta"];
 
@@ -173,7 +173,7 @@ const PROCESSED_TERMS = ["crema", "frullat", "omogeneizz", "ramen", "roll", "agr
 // L'ordine conta: la prima regola che coincide decide la categoria (prima i casi più specifici).
 const RULES: Rule[] = [
   { group: "animali", sub: "accessori", any: [["lettiera"], ["sabbia"], ["guinzaglio"], ["lettiere"], ["antiparassit"]] },
-  { group: "animali", sub: "gatti", any: [["gatto"], ["gatti"], ["=cat"], ["felix"], ["whiskas"], ["sheba"], ["kitekat"], ["friskies"], ["schesir"], ["dreamies"], ["hairball"], ["urinary"], ["bifensis"], ["gourmet gold"], ["gourmet perle"], ["gourmet a la carte"], ["gourmet soup"], ["mon petit"], ["migliorgatto"]] },
+  { group: "animali", sub: "gatti", any: [["gatto"], ["gatti"], ["=cat"], ["felix"], ["whiskas"], ["sheba"], ["kitekat"], ["friskies"], ["schesir"], ["dreamies"], ["hairball"], ["urinary"], ["bifensis"], ["=chat"], ["lechat"], ["gemon"], ["kitten"], ["gattin"], ["lindocat"], ["tratto urinario"], ["gourmet gold"], ["gourmet perle"], ["gourmet a la carte"], ["gourmet soup"], ["mon petit"], ["migliorgatto"]] },
   { group: "animali", sub: "cani", any: [...PET.filter((t) => t !== "lettiera").map((term) => [term]), ["=dog"]], not: ["hot dog"] },
   { group: "altro", sub: "snack-salati", any: [["patatine"], ["chips"], ["popcorn"], ["pop corn"], ["salatini"], ["snack", "salat"]], not: ["cioccolat", "gocce"] },
 

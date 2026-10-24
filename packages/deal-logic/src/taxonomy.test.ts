@@ -21,6 +21,8 @@ test("non confonde prodotti con parole ambigue", () => {
   assert.equal(classify("Fanta arancia 1,5 l").sub, "gassate");
   assert.equal(classify("Fantasia di funghi").group !== "bevande", true);
   assert.equal(classify("Purina gatto con tacchino").group, "animali");
+  assert.equal(classify("LeChat Excellence Adult Bocconcini in Salsa con Manzo").group, "animali");
+  assert.equal(classify("Le Chat Excellence Adult Salmone con riso, uova, mela 1,5 kg").group, "animali");
   assert.equal(classify("Cesari Amarone Valpolicella DOCG").group, "bevande");
   assert.equal(classify("Wurstel hot dog").group, "proteine");
 });

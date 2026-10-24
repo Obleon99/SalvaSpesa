@@ -10,6 +10,8 @@ export interface EkomBlock {
   discountPercent: number | null;
   unitPrice: number | null;
   unit: PricingUnit | null;
+  // Offerta riservata ai possessori della carta Ekom UP.
+  loyalty?: boolean;
 }
 
 export interface EkomPageResult {
@@ -169,5 +171,84 @@ export function parseEkomPage(items: PdfTextItem[]): EkomPageResult {
     });
   }
 
+  return { blocks, skipped };
+}
+
+const ANCHOR = /^ANZICH[ÉE]\s+(\d{1,3},\d{2})\s*€?$/i;
+
+// Pagina con le offerte riservate ai possessori di Ekom UP: riquadri "- 20 % / ANZICHÉ 2,49 € / € 1,99 / AL KG 6,63 €".
+export const isEkomUpPage = (items: PdfTextItem[]): boolean => items.some((i) => /EKOM UP/i.test(i.str) && i.size >= 20);
+
+export function parseEkomUpPage(items: PdfTextItem[]): EkomPageResult {
+  const blocks: EkomBlock[] = [];
+  const skipped: EkomPageResult["skipped"] = [];
+  const anchors = items.filter((i) => ANCHOR.test(i.str));
+
+  const isDescriptor = (i: PdfTextItem) =>
+    i.size >= 6.5 &&
+    i.size <= 12 &&
+    !ANCHOR.test(i.str) &&
+    !UNIT.test(i.str) &&
+    !PRICE.test(i.str) &&
+    !/^[-%€]$/.test(i.str) &&
+    !/^\d{1,2}$/.test(i.str) &&
+    !/^20\d\d$/.test(i.str);
+
+  for (const anchor of anchors) {
+    const originalPrice = parseEuro(anchor.str.replace(/^ANZICH[ÉE]\s+/i, ""));
+    const price = items
+      .filter((i) => PRICE.test(i.str) && i.size >= 20 && i.y < anchor.y && anchor.y - i.y < 60 && Math.abs(i.x - anchor.x) < 30)
+      .sort((a, b) => b.y - a.y)[0];
+    const priceValue = price ? parseEuro(`${price.str} €`) : null;
+    if (originalPrice === null || priceValue === null || priceValue >= originalPrice) {
+      skipped.push({ text: anchor.str, reason: "prezzo Ekom UP non trovato" });
+      continue;
+    }
+    const computed = discountPercent(priceValue, originalPrice);
+    if (computed === null || computed < 3 || computed > 70) {
+      skipped.push({ text: anchor.str, reason: `sconto non plausibile (${computed ?? 0}%)` });
+      continue;
+    }
+
+    const unitItem = items.find((i) => UNIT.test(i.str) && i.y < anchor.y && anchor.y - i.y < 70 && Math.abs(i.x - anchor.x) < 30);
+
+    // Ogni testo appartiene al riquadro il cui prezzo gli sta più vicino a sinistra.
+    const descriptors = items
+      .filter((i) => isDescriptor(i) && i.y < anchor.y + 30 && anchor.y - i.y < 130)
+      .filter((i) => {
+        const dx = i.x - anchor.x;
+        if (dx < -20 || dx > 150) return false;
+        return !anchors.some((other) => other !== anchor && Math.abs(other.y - anchor.y) < 20 && i.x - other.x >= -20 && i.x - other.x < dx);
+      })
+      .sort((a, b) => b.y - a.y || a.x - b.x);
+
+    let packageText: string | null = null;
+    const nameParts: string[] = [];
+    for (const line of descriptors.map((d) => d.str)) {
+      const whole = packageText === null ? line.match(SIZE) : null;
+      const trailing = packageText === null && !whole ? line.match(TRAILING_SIZE) : null;
+      if (whole) packageText = sizeToText(whole);
+      else if (trailing) {
+        packageText = sizeToText(trailing);
+        nameParts.push(line.slice(0, trailing.index).trim());
+      } else nameParts.push(line);
+    }
+    const name = titleCase(nameParts.join(" ").replace(/[\s,;-]+$/, "").trim());
+    if (!name) {
+      skipped.push({ text: anchor.str, reason: "descrizione non trovata" });
+      continue;
+    }
+
+    const unitMatch = unitItem?.str.match(UNIT);
+    const fromLabel = unitMatch
+      ? {
+          unitPrice: parseEuro(`${unitMatch[2]} €`) ?? 0,
+          unit: (unitMatch[1].toUpperCase() === "KG" ? "kg" : unitMatch[1].toUpperCase() === "PZ" ? "pz" : "l") as PricingUnit,
+        }
+      : null;
+    const unit = fromLabel && fromLabel.unitPrice > 0 ? fromLabel : packageText ? unitPriceFromPackage(priceValue, packageText) : null;
+
+    blocks.push({ name, packageText, price: priceValue, originalPrice, discountPercent: computed, unitPrice: unit?.unitPrice ?? null, unit: unit?.unit ?? null, loyalty: true });
+  }
   return { blocks, skipped };
 }

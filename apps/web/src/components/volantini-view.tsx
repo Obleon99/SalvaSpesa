@@ -1,5 +1,6 @@
 "use client";
 
+import { flyerUrl } from "@/lib/chains";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { GROUPS, classifyProduct, monthName, seasonalProduce, seasonalStatus } from "@salvaspesa/deal-logic";
@@ -63,7 +64,7 @@ export function VolantiniView() {
         count: (current?.count ?? 0) + 1,
         from: current && current.from < offer.validFrom ? current.from : offer.validFrom,
         to: offer.validTo,
-        sourceUrl: current?.sourceUrl ?? offer.sourceUrl,
+        sourceUrl: current?.sourceUrl ?? flyerUrl(offer.chainId, offer.sourceUrl),
       });
       const counts = endDates.get(key) ?? new Map<string, number>();
       counts.set(offer.validTo, (counts.get(offer.validTo) ?? 0) + 1);
@@ -169,7 +170,7 @@ export function VolantiniView() {
                 >
                   {chain === flyer.chainId ? "Mostra tutte le insegne" : "Vedi le offerte"}
                 </button>
-                <a href={flyer.sourceUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-xl text-outline hover:text-on-surface hover:bg-surface-container-low" title={`Apri il sito di ${flyer.chainName}`}>
+                <a href={flyer.sourceUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-xl text-outline hover:text-on-surface hover:bg-surface-container-low" title={`Apri il volantino di ${flyer.chainName}`}>
                   <Icon name="open_in_new" className="text-lg" />
                 </a>
               </div>

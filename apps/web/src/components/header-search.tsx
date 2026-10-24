@@ -22,8 +22,8 @@ export function HeaderSearch() {
         value={value}
         onChange={(event) => setValue(event.target.value)}
         aria-label="Cerca prodotti o marche"
-        className="w-48 xl:w-72 bg-surface-container-lowest pl-9 pr-3 py-1.5 rounded-full font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-        placeholder="Cerca prodotti, marchi es. Nutella, Barilla..."
+        className="w-40 xl:w-60 bg-surface-container-lowest pl-9 pr-3 py-1.5 rounded-full font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+        placeholder="Cerca un prodotto…"
         type="search"
       />
     </form>

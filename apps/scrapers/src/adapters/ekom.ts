@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { collect, type AdapterResult, type ChainAdapter, type RejectedItem } from "../adapter";
-import { parseEkomPage } from "../ekom-parse";
+import { isEkomUpPage, parseEkomPage, parseEkomUpPage } from "../ekom-parse";
 import { fetchBinary, fetchText } from "../http";
 import { extractPdfPages } from "../pdf";
 import { endOfDayIso, startOfDayIso } from "../parse";
@@ -57,7 +57,7 @@ export const ekomAdapter: ChainAdapter = {
       }
 
       for (const items of pdfPages) {
-        const parsed = parseEkomPage(items);
+        const parsed = isEkomUpPage(items) ? parseEkomUpPage(items) : parseEkomPage(items);
         for (const skipped of parsed.skipped) {
           rejected.push({ externalId: null, name: skipped.text || null, reason: `${code}: ${skipped.reason}` });
         }
@@ -78,7 +78,7 @@ export const ekomAdapter: ChainAdapter = {
               price: block.price,
               originalPrice: block.originalPrice,
               discountPercent: block.discountPercent,
-              requiresLoyaltyCard: false,
+              requiresLoyaltyCard: block.loyalty === true,
               packageText: block.packageText,
               unitPrice: block.unitPrice,
               unit: block.unit,
