@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GROUPS } from "@salvaspesa/deal-logic";
 import { GROUP_EMOJI } from "./groups";
 import { Stepper } from "./stepper";
 import { useApp, type Profile } from "./state";
+import { colors } from "./theme";
 
 const SLIDES = [
   { emoji: "🛒", title: "Benvenuto in SpesaChiara", text: "Confronta le offerte dei supermercati vicino a te e scopri dove conviene davvero fare la spesa." },
@@ -14,6 +16,7 @@ const SLIDES = [
 
 export function Onboarding() {
   const { completeOnboarding, profile: saved, categories: savedCategories } = useApp();
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
   const [name, setName] = useState(saved.name);
   const [adults, setAdults] = useState(saved.adults);
@@ -34,7 +37,7 @@ export function Onboarding() {
   const toggle = (id: string) => setCategories((list) => (list.includes(id) ? list.filter((c) => c !== id) : [...list, id]));
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={[styles.screen, { paddingTop: insets.top + 16 }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {!onProfileStep ? (
           <View style={styles.slide}>
@@ -75,7 +78,7 @@ export function Onboarding() {
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom, paddingLeft: 16 + insets.left, paddingRight: 16 + insets.right }]}>
         <View style={styles.dots}>
           {Array.from({ length: SLIDES.length + 1 }, (_, i) => (
             <View key={i} style={[styles.dot, i === step && styles.dotOn]} />
@@ -101,10 +104,10 @@ export function Onboarding() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#f8fafc", paddingTop: 48 },
+  screen: { flex: 1, backgroundColor: colors.bg },
   content: { flexGrow: 1, padding: 24, justifyContent: "center" },
   slide: { alignItems: "center", gap: 12 },
-  emoji: { fontSize: 72 },
+  emoji: { fontSize: 72, textAlign: "center", width: 140, height: 140, lineHeight: 140, borderRadius: 70, backgroundColor: colors.primarySoft, overflow: "hidden" },
   title: { fontSize: 24, fontWeight: "800", textAlign: "center", color: "#0f172a" },
   text: { fontSize: 16, color: "#475569", textAlign: "center", lineHeight: 23, marginTop: 4 },
   label: { color: "#475569", fontSize: 12, fontWeight: "600", marginTop: 16, marginBottom: 4, textTransform: "uppercase" },
@@ -124,7 +127,7 @@ const styles = StyleSheet.create({
   buttons: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   secondary: { paddingVertical: 12, paddingHorizontal: 8 },
   secondaryText: { color: "#475569", fontWeight: "600" },
-  primary: { backgroundColor: "#15803d", paddingVertical: 12, paddingHorizontal: 28, borderRadius: 12 },
+  primary: { backgroundColor: "#15803d", paddingVertical: 13, paddingHorizontal: 30, borderRadius: 999 },
   primaryText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   disabled: { opacity: 0.4 },
 });

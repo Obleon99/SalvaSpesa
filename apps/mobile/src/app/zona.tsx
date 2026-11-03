@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Location from "expo-location";
 import { fetchNearbyStores, formatDistance, geocodeAddress, haversineKm, type LatLng, type StoreWithDistance } from "@salvaspesa/app-core";
@@ -8,6 +8,8 @@ import { useApp } from "../state";
 const RADIUS_KM = 8;
 // Oltre questa distanza dal punto cercato compare «Cerca in quest'area».
 const MOVED_KM = 0.4;
+// Si mostrano solo i negozi più vicini: centinaia di segnaposto rallentano i telefoni meno recenti e non servono.
+const MAX_STORES = 150;
 
 export default function Zona() {
   const { favorites, toggleFavorite, data, setLocation } = useApp();
@@ -17,29 +19,47 @@ export default function Zona() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
 
-  // Cerca i supermercati attorno a un punto qualsiasi e centra la mappa lì.
-  async function loadAround(point: LatLng) {
+  // Ogni ricerca ha un numero: se ne parte una nuova mentre la vecchia è in corso, il risultato vecchio viene scartato.
+  const latest = useRef(0);
+
+  // Cerca i supermercati attorno a un punto qualsiasi e centra la mappa lì. Non blocca l'app: la rete gira in background
+  // e l'interfaccia (mappa, scorrimento, altre schede) resta utilizzabile.
+  async function loadAround(point: LatLng, ticket: number) {
     const found = await fetchNearbyStores(point.lat, point.lng, RADIUS_KM);
+    if (ticket !== latest.current) return;
+    const nearest = found
+      .map((s) => ({ ...s, distanceKm: haversineKm(point, s) }))
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, MAX_STORES);
+    // Si cede un attimo il controllo all'interfaccia prima dell'aggiornamento più pesante, così la mappa non scatta.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    if (ticket !== latest.current) return;
     setSelectedId(null);
     setSearchCenter(point);
     setMapCenter(point);
-    setStores(found.map((s) => ({ ...s, distanceKm: haversineKm(point, s) })).sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0)));
+    setStores(nearest);
   }
 
-  async function run(task: () => Promise<void>) {
+  async function run(task: (ticket: number) => Promise<void>, label: string) {
+    const ticket = ++latest.current;
     setBusy(true);
+    setStatus(label);
     try {
-      await task();
+      await task(ticket);
     } catch (error) {
-      Alert.alert("Errore", (error as Error).message);
+      if (ticket === latest.current) Alert.alert("Non riesco a cercare", "Controlla la connessione e riprova tra qualche istante.");
     } finally {
-      setBusy(false);
+      if (ticket === latest.current) {
+        setBusy(false);
+        setStatus("");
+      }
     }
   }
 
   const locate = () =>
-    run(async () => {
+    run(async (ticket) => {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) {
         Alert.alert("Posizione negata", "Serve il permesso per trovare i supermercati vicini. Puoi comunque cercare un indirizzo.");
@@ -53,21 +73,22 @@ export default function Zona() {
       const place = await Location.reverseGeocodeAsync({ latitude: here.lat, longitude: here.lng }).catch(() => []);
       const label = [place[0]?.city ?? place[0]?.subregion, place[0]?.region].filter(Boolean).join(", ");
       setLocation({ ...here, label: label || `${here.lat.toFixed(3)}, ${here.lng.toFixed(3)}` });
-      await loadAround(here);
-    });
+      await loadAround(here, ticket);
+    }, "Cerco la tua posizione…");
 
   const searchAddress = () =>
-    run(async () => {
+    run(async (ticket) => {
       Keyboard.dismiss();
       const place = await geocodeAddress(address);
+      if (ticket !== latest.current) return;
       if (!place) {
         Alert.alert("Indirizzo non trovato", "Prova a scrivere via, numero e città (per esempio «Via Roma 10, Genova»).");
         return;
       }
-      await loadAround({ lat: place.lat, lng: place.lng });
-    });
+      await loadAround({ lat: place.lat, lng: place.lng }, ticket);
+    }, "Cerco l'indirizzo…");
 
-  const searchHere = () => mapCenter && run(() => loadAround(mapCenter));
+  const searchHere = () => mapCenter && run((ticket) => loadAround(mapCenter, ticket), "Cerco i supermercati in quest'area…");
 
   const favoriteIds = useMemo(() => favorites.map((f) => f.id), [favorites]);
   const selected = stores.find((s) => s.id === selectedId) ?? null;
@@ -103,7 +124,13 @@ export default function Zona() {
         <Pressable style={styles.chip} onPress={locate} disabled={busy}>
           <Text style={styles.chipText}>📍 Usa la mia posizione</Text>
         </Pressable>
-        {moved && (
+        {busy && status ? (
+          <View style={[styles.chip, styles.busyChip]}>
+            <ActivityIndicator size="small" color="#15803d" />
+            <Text style={styles.chipText}>{status}</Text>
+          </View>
+        ) : null}
+        {moved && !busy && (
           <Pressable style={[styles.chip, styles.chipPrimary]} onPress={searchHere} disabled={busy}>
             <Text style={[styles.chipText, { color: "#fff" }]}>🔎 Cerca supermercati in quest'area</Text>
           </Pressable>
@@ -150,6 +177,7 @@ const styles = StyleSheet.create({
   go: { paddingHorizontal: 18, borderRadius: 12, backgroundColor: "#15803d", alignItems: "center", justifyContent: "center", elevation: 4 },
   goText: { color: "#fff", fontWeight: "700" },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: "#fff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
+  busyChip: { flexDirection: "row", alignItems: "center", gap: 8 },
   chipPrimary: { backgroundColor: "#15803d", borderColor: "#15803d" },
   chipText: { fontWeight: "600", color: "#0f172a" },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },

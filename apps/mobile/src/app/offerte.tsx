@@ -1,36 +1,50 @@
-import { useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
-import { offerKey } from "@salvaspesa/app-core";
+import { useCallback, useState } from "react";
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
+import { router } from "expo-router";
+import { offerKey, type OfferView } from "@salvaspesa/app-core";
 import { OfferRow, OfferTile } from "../offer-views";
 import { useVisibleOffers } from "../offers";
 import { useApp } from "../state";
+import { colors, radius, shadow } from "../theme";
+import { Button, SkeletonTiles, StateMessage } from "../ui";
 
 type Mode = "list" | "grid";
 
 export default function Offerte() {
-  const { favorites, loading, updating, refresh } = useApp();
+  const { favorites, loading, updating, progress, refresh } = useApp();
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("grid");
   const offers = useVisibleOffers(query);
+  const busy = loading || updating;
+
+  const renderItem = useCallback(({ item }: { item: OfferView }) => (mode === "grid" ? <OfferTile offer={item} /> : <OfferRow offer={item} />), [mode]);
 
   return (
     <View style={styles.screen}>
       <View style={styles.toolbar}>
-        <TextInput style={styles.search} placeholder="Cerca un prodotto" value={query} onChangeText={setQuery} />
+        <View style={styles.searchBox}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput style={styles.search} placeholder="Cerca un prodotto" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} returnKeyType="search" autoCorrect={false} />
+          {query ? (
+            <Pressable onPress={() => setQuery("")} hitSlop={10}>
+              <Text style={styles.clear}>✕</Text>
+            </Pressable>
+          ) : null}
+        </View>
         <View style={styles.toggle}>
           {(["grid", "list"] as const).map((value) => (
             <Pressable key={value} style={[styles.toggleButton, mode === value && styles.toggleOn]} onPress={() => setMode(value)}>
-              <Text style={mode === value ? styles.toggleTextOn : undefined}>{value === "grid" ? "Griglia" : "Lista"}</Text>
+              <Text style={[styles.toggleText, mode === value && styles.toggleTextOn]}>{value === "grid" ? "▦ Griglia" : "☰ Lista"}</Text>
             </Pressable>
           ))}
         </View>
       </View>
-      {favorites.length === 0 && <Text style={styles.empty}>Scegli i tuoi supermercati in «La mia zona» per vedere le offerte.</Text>}
-      {loading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#15803d" />
-          <Text style={styles.loadingText}>Caricamento offerte in corso</Text>
-        </View>
+
+      {loading && offers.length === 0 ? (
+        <>
+          <StateMessage busy emoji="" title="Sto scaricando le offerte" text={progress || "Ci vorrà un momento, solo la prima volta."} />
+          <SkeletonTiles count={4} />
+        </>
       ) : (
         <FlatList
           // Il numero di colonne non si può cambiare al volo: la key forza il rinnovo della lista.
@@ -38,10 +52,28 @@ export default function Offerte() {
           data={offers}
           numColumns={mode === "grid" ? 2 : 1}
           keyExtractor={offerKey}
-          contentContainerStyle={mode === "grid" ? { paddingHorizontal: 6 } : undefined}
-          refreshControl={<RefreshControl refreshing={updating && !loading} onRefresh={() => void refresh(true)} />}
-          renderItem={({ item }) => (mode === "grid" ? <OfferTile offer={item} /> : <OfferRow offer={item} />)}
-          ListEmptyComponent={favorites.length > 0 ? <Text style={styles.empty}>Nessuna offerta trovata.</Text> : undefined}
+          contentContainerStyle={[{ paddingBottom: 16 }, mode === "grid" && { paddingHorizontal: 8 }]}
+          // Si disegnano solo le righe visibili e poco intorno: lista fluida anche con migliaia di offerte.
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          updateCellsBatchingPeriod={60}
+          windowSize={7}
+          removeClippedSubviews
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={updating && !loading} onRefresh={() => void refresh(true)} colors={[colors.primary]} />}
+          renderItem={renderItem}
+          ListHeaderComponent={updating ? <Text style={styles.updating}>🔄  {progress || "Aggiorno le offerte…"}</Text> : undefined}
+          ListEmptyComponent={
+            favorites.length === 0 ? (
+              <StateMessage emoji="🗺️" title="Scegli i tuoi supermercati" text="Aggiungi i negozi vicino a te per vedere le loro offerte." action={<Button label="Apri la mappa" onPress={() => router.push("/zona")} />} />
+            ) : busy ? (
+              <StateMessage busy emoji="" title="Sto scaricando le offerte" text={progress} />
+            ) : query ? (
+              <StateMessage emoji="🔎" title="Nessun risultato" text={`Non ho trovato offerte per «${query}». Prova con un'altra parola.`} />
+            ) : (
+              <StateMessage emoji="🛒" title="Ancora nessuna offerta" text="I volantini dei tuoi supermercati non sono ancora disponibili." action={<Button label="Riprova" onPress={() => void refresh(true)} />} />
+            )
+          }
         />
       )}
     </View>
@@ -49,14 +81,16 @@ export default function Offerte() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#f8fafc" },
-  toolbar: { padding: 12, gap: 8 },
-  search: { padding: 10, borderRadius: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0" },
-  toggle: { flexDirection: "row", alignSelf: "flex-start", borderRadius: 10, borderWidth: 1, borderColor: "#cbd5e1", overflow: "hidden", backgroundColor: "#fff" },
-  toggleButton: { paddingHorizontal: 16, paddingVertical: 6 },
-  toggleOn: { backgroundColor: "#15803d" },
-  toggleTextOn: { color: "#fff", fontWeight: "600" },
-  loading: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { color: "#334155", fontSize: 16, fontWeight: "600" },
-  empty: { textAlign: "center", color: "#64748b", padding: 24 },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  toolbar: { padding: 14, gap: 10 },
+  searchBox: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.card, ...shadow },
+  searchIcon: { fontSize: 15 },
+  search: { flex: 1, paddingVertical: 10, fontSize: 15, color: colors.text },
+  clear: { color: colors.muted, fontSize: 16 },
+  toggle: { flexDirection: "row", alignSelf: "flex-start", borderRadius: radius.pill, backgroundColor: "#e3ebe6", padding: 3 },
+  toggleButton: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: radius.pill },
+  toggleOn: { backgroundColor: colors.primary },
+  toggleText: { color: colors.text, fontWeight: "600", fontSize: 13 },
+  toggleTextOn: { color: "#fff" },
+  updating: { textAlign: "center", color: colors.muted, fontSize: 12, paddingBottom: 6 },
 });

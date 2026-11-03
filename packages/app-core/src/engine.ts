@@ -143,7 +143,38 @@ interface ChainResult {
   times: string[];
 }
 
-async function loadChain(chainId: string, favorites: FavoriteRef[], storage: SnapshotStorage, options: LoadOptions, maxAge: number): Promise<ChainResult> {
+interface Tracker {
+  begin(name: string): void;
+  end(name: string): void;
+}
+
+// Cede il controllo al thread dell'interfaccia: tra un passo e l'altro i tocchi e lo scorrimento restano fluidi.
+const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+// Volantino già scaricato e invariato → basta segnare la verifica; altrimenti si scarica. Restituisce un eventuale errore.
+async function refreshStale(chainId: string, stale: string[], snapshots: Map<string, Snapshot | null>, storage: SnapshotStorage): Promise<string | null> {
+  const fingerprint = await fingerprintOf(chainId);
+  const unchanged =
+    fingerprint !== null &&
+    stale.every((code) => {
+      const snapshot = snapshots.get(code);
+      return snapshot?.fingerprint === fingerprint && Date.now() - Date.parse(snapshot.scrapedAt) < PROBE_MAX_AGE_MS && snapshot.offers.some((o) => Date.parse(o.validTo) >= Date.now());
+    });
+  if (unchanged) {
+    const checkedAt = new Date().toISOString();
+    for (const code of stale) {
+      const touched = { ...(snapshots.get(code) as Snapshot), checkedAt };
+      snapshots.set(code, touched);
+      await storage.write(keyOf(chainId, code), JSON.stringify(touched)).catch(() => undefined);
+    }
+    return null;
+  }
+  const failure = await scrapeChain(storage, chainId, stale.filter(Boolean), fingerprint);
+  if (failure === null) for (const code of stale) snapshots.set(code, await readSnapshot(storage, chainId, code));
+  return failure;
+}
+
+async function loadChain(chainId: string, favorites: FavoriteRef[], storage: SnapshotStorage, options: LoadOptions, maxAge: number, track: Tracker): Promise<ChainResult> {
   const result: ChainResult = { sources: [], offers: [], times: [] };
   const chainName = CHAIN_NAMES[chainId];
   if (!chainName) {
@@ -167,31 +198,18 @@ async function loadChain(chainId: string, favorites: FavoriteRef[], storage: Sna
 
   const snapshots = new Map<string, Snapshot | null>();
   for (const code of targets.keys()) snapshots.set(code, await readSnapshot(storage, chainId, code));
+  await yieldToUi();
 
   let failure: string | null = null;
   const stale = options.cacheOnly ? [] : [...targets.keys()].filter((code) => options.force || !isFresh(snapshots.get(code) ?? null, maxAge));
   if (stale.length > 0) {
-    options.onProgress?.(chainName);
-    const fingerprint = await fingerprintOf(chainId);
-    const unchanged =
-      fingerprint !== null &&
-      stale.every((code) => {
-        const snapshot = snapshots.get(code);
-        return snapshot?.fingerprint === fingerprint && Date.now() - Date.parse(snapshot.scrapedAt) < PROBE_MAX_AGE_MS && snapshot.offers.some((o) => Date.parse(o.validTo) >= Date.now());
-      });
-    if (unchanged) {
-      // Volantino invariato: basta segnare la verifica, senza scaricare né rielaborare nulla.
-      const checkedAt = new Date().toISOString();
-      for (const code of stale) {
-        const snapshot = snapshots.get(code) as Snapshot;
-        const touched = { ...snapshot, checkedAt };
-        snapshots.set(code, touched);
-        await storage.write(keyOf(chainId, code), JSON.stringify(touched)).catch(() => undefined);
-      }
-    } else {
-      failure = await scrapeChain(storage, chainId, stale.filter(Boolean), fingerprint);
-      if (failure === null) for (const code of stale) snapshots.set(code, await readSnapshot(storage, chainId, code));
+    track.begin(chainName);
+    try {
+      failure = await refreshStale(chainId, stale, snapshots, storage);
+    } finally {
+      track.end(chainName);
     }
+    await yieldToUi();
   }
 
   const now = Date.now();
@@ -214,9 +232,9 @@ async function loadChain(chainId: string, favorites: FavoriteRef[], storage: Sna
     }
     if (!snapshot) continue;
     result.times.push(checked as string);
+    const storeIds = group.map((f) => f.id);
     for (const offer of snapshot.offers) {
-      if (Date.parse(offer.validTo) < now) continue;
-      result.offers.push({ ...offer, chainName, storeIds: group.map((f) => f.id) });
+      if (Date.parse(offer.validTo) >= now) result.offers.push({ ...offer, chainName, storeIds });
     }
   }
   return result;
@@ -263,9 +281,21 @@ export async function loadOffers(favorites: FavoriteRef[], storage: SnapshotStor
   }
 
   // Le insegne sono indipendenti: si scaricano insieme invece che una dopo l'altra.
+  const active = new Set<string>();
+  const report = () => options.onProgress?.(active.size > 0 ? `Scarico i volantini: ${[...active].join(", ")}` : "");
+  const track: Tracker = {
+    begin: (name) => {
+      active.add(name);
+      report();
+    },
+    end: (name) => {
+      active.delete(name);
+      report();
+    },
+  };
   const results = await Promise.all(
     [...byChain].map(([chainId, chainFavorites]) =>
-      loadChain(chainId, chainFavorites, storage, options, maxAge).catch(
+      loadChain(chainId, chainFavorites, storage, options, maxAge, track).catch(
         (error): ChainResult => ({
           sources: chainFavorites.map((f) => ({ storeId: f.id, storeName: f.name, chainId, chainName: f.chainName, status: "error", offerCount: 0, scrapedAt: null, storeCode: null, note: (error as Error).message })),
           offers: [],

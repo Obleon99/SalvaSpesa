@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { GROUPS } from "@salvaspesa/deal-logic";
 import { GROUP_EMOJI } from "../groups";
 import { Stepper } from "../stepper";
 import { useApp } from "../state";
+import { colors, radius } from "../theme";
+import { Button, Card, Chip } from "../ui";
 
 // Ogni nome compare una volta sola; se i negozi sono più di uno lo si indica tra parentesi.
 function favoriteSummary(favorites: { name: string }[]): string {
@@ -30,61 +32,55 @@ export default function Profilo() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>I tuoi dati</Text>
-      <Text style={styles.label}>Nome</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} onEndEditing={saveName} placeholder="Come ti chiami?" />
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <Card style={styles.card}>
+        <Text style={styles.title}>👤  I tuoi dati</Text>
+        <Text style={styles.label}>Nome</Text>
+        <TextInput style={styles.input} value={name} onChangeText={setName} onEndEditing={saveName} placeholder="Come ti chiami?" placeholderTextColor={colors.muted} />
 
-      <View style={styles.household}>
-        <Stepper label="Adulti" value={profile.adults} onChange={(adults) => setProfile({ ...profile, adults })} />
-        <Stepper label="Bambini" value={profile.children} onChange={(children) => setProfile({ ...profile, children })} />
+        <View style={styles.household}>
+          <Stepper label="Adulti" value={profile.adults} onChange={(adults) => setProfile({ ...profile, adults })} />
+          <Stepper label="Bambini" value={profile.children} onChange={(children) => setProfile({ ...profile, children })} />
+        </View>
+
+        <Text style={styles.label}>Soglia di spesa settimanale (€)</Text>
+        <TextInput style={styles.input} value={budget} onChangeText={setBudget} onEndEditing={saveBudget} keyboardType="decimal-pad" placeholder="Nessuna soglia" placeholderTextColor={colors.muted} />
+
+        <Text style={styles.label}>Posizione</Text>
+        <Text style={styles.value}>📍  {location ? location.label : "Non impostata: cercala in «La mia zona»."}</Text>
+      </Card>
+
+      <Card style={styles.card}>
+        <Text style={styles.title}>🍽️  Categorie da mostrare</Text>
+        <Text style={styles.muted}>{categories.length === 0 ? "Nessuna selezione: vedi tutte le categorie." : "Vedi solo le categorie scelte."}</Text>
+        <View style={styles.chips}>
+          {GROUPS.map((group) => (
+            <Chip key={group.id} on={categories.includes(group.id)} onPress={() => toggleCategory(group.id)} label={`${GROUP_EMOJI[group.icon] ?? "🛒"} ${group.label}`} />
+          ))}
+        </View>
+      </Card>
+
+      <Card style={styles.card}>
+        <Text style={styles.title}>⭐  Supermercati preferiti</Text>
+        <Text style={styles.muted}>{favorites.length === 0 ? "Nessuno: sceglili in «La mia zona»." : favoriteSummary(favorites)}</Text>
+      </Card>
+
+      <View style={{ alignItems: "center", marginTop: 6 }}>
+        <Button label="Rivedi la guida" kind="ghost" onPress={restartOnboarding} />
       </View>
-
-      <Text style={styles.label}>Soglia di spesa settimanale (€)</Text>
-      <TextInput style={styles.input} value={budget} onChangeText={setBudget} onEndEditing={saveBudget} keyboardType="decimal-pad" placeholder="Nessuna soglia" />
-
-      <Text style={styles.label}>Posizione</Text>
-      <Text style={styles.value}>{location ? location.label : "Non impostata: cercala in «La mia zona»."}</Text>
-
-      <Text style={[styles.title, { marginTop: 24 }]}>Categorie da mostrare</Text>
-      <Text style={styles.muted}>{categories.length === 0 ? "Nessuna selezione: vedi tutte le categorie." : "Vedi solo le categorie scelte."}</Text>
-      <View style={styles.chips}>
-        {GROUPS.map((group) => {
-          const on = categories.includes(group.id);
-          return (
-            <Pressable key={group.id} style={[styles.chip, on && styles.chipOn]} onPress={() => toggleCategory(group.id)}>
-              <Text style={on ? styles.chipTextOn : undefined}>{`${GROUP_EMOJI[group.icon] ?? "🛒"} ${group.label}`}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Text style={[styles.title, { marginTop: 24 }]}>Supermercati preferiti</Text>
-      <Text style={styles.muted}>{favorites.length === 0 ? "Nessuno: sceglili in «La mia zona»." : favoriteSummary(favorites)}</Text>
-      <Pressable style={styles.guide} onPress={restartOnboarding}>
-        <Text style={styles.guideText}>Rivedi la guida</Text>
-      </Pressable>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#f8fafc" },
-  title: { fontWeight: "700", fontSize: 16, marginBottom: 4 },
-  label: { color: "#475569", fontSize: 12, fontWeight: "600", marginTop: 12, marginBottom: 4, textTransform: "uppercase" },
-  value: { fontSize: 15 },
-  muted: { color: "#64748b" },
-  input: { padding: 10, borderRadius: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0" },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: 14, gap: 14, paddingBottom: 28 },
+  card: { gap: 4 },
+  title: { fontWeight: "800", fontSize: 16, marginBottom: 4, color: colors.text },
+  label: { color: colors.muted, fontSize: 12, fontWeight: "700", marginTop: 12, marginBottom: 4, textTransform: "uppercase" },
+  value: { fontSize: 15, color: colors.text },
+  muted: { color: colors.muted },
+  input: { padding: 12, borderRadius: radius.sm, backgroundColor: "#f4f7f5", borderWidth: 1, borderColor: colors.line, color: colors.text },
   household: { flexDirection: "row", gap: 24 },
-  stepper: { flex: 1 },
-  stepperRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  stepButton: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: "#cbd5e1", backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
-  stepText: { fontSize: 20, lineHeight: 22 },
-  stepValue: { fontSize: 18, fontWeight: "700", minWidth: 20, textAlign: "center" },
-  guide: { marginTop: 28, alignSelf: "flex-start", paddingVertical: 8 },
-  guideText: { color: "#15803d", fontWeight: "700" },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
-  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: "#cbd5e1", backgroundColor: "#fff" },
-  chipOn: { backgroundColor: "#15803d", borderColor: "#15803d" },
-  chipTextOn: { color: "#fff" },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
 });
