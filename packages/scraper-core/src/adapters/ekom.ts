@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha1Hex } from "../hash";
 import { collect, type AdapterResult, type ChainAdapter, type RejectedItem } from "../adapter";
 import { isEkomUpPage, parseEkomPage, parseEkomUpPage } from "../ekom-parse";
 import { fetchBinary, fetchText } from "../http";
@@ -62,7 +62,7 @@ export const ekomAdapter: ChainAdapter = {
           rejected.push({ externalId: null, name: skipped.text || null, reason: `${code}: ${skipped.reason}` });
         }
         for (const block of parsed.blocks) {
-          const id = createHash("sha1").update(`${code}|${block.name}|${block.price}`).digest("hex").slice(0, 12);
+          const id = sha1Hex(`${code}|${block.name}|${block.price}`).slice(0, 12);
           if (seen.has(id)) continue;
           seen.add(id);
           collect(

@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { scraperConfig } from "../config";
 import { collect, type AdapterResult, type ChainAdapter, type RejectedItem } from "../adapter";
 import { fetchText, sleep } from "../http";
 import { discountPercent, endOfDayIso, startOfDayIso, unitPriceFromPackage } from "../parse";
@@ -7,7 +8,7 @@ import type { ScrapedOffer } from "@salvaspesa/shared-types";
 const SITE = "https://www.esselunga.it";
 const GRID = `${SITE}/services/istituzionale35/digital-grid`;
 // Codice del negozio nel sito Esselunga (default Affori, Milano). Più negozi: ESSELUNGA_STORES="AFF,ADR".
-const configuredStores = () => (process.env.ESSELUNGA_STORES ?? "AFF").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+const configuredStores = () => scraperConfig.esselungaStores;
 const PAGE_ROWS = 100;
 const MAX_PAGES = 15;
 const REQUEST_DELAY_MS = 400;

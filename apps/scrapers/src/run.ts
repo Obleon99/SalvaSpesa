@@ -1,17 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ScrapedOffer } from "@salvaspesa/shared-types";
-import type { ChainAdapter } from "./adapter";
-import { lidlAdapter } from "./adapters/lidl";
-import { pennyAdapter } from "./adapters/penny";
-import { eurospinAdapter } from "./adapters/eurospin";
-import { esselungaAdapter } from "./adapters/esselunga";
-import { tigrosAdapter } from "./adapters/ebsn";
-import { ekomAdapter } from "./adapters/ekom";
-import { aldiAdapter } from "./adapters/aldi";
-import { conadAdapter } from "./adapters/conad";
-
-const adapters: ChainAdapter[] = [lidlAdapter, pennyAdapter, eurospinAdapter, esselungaAdapter, tigrosAdapter, ekomAdapter, aldiAdapter, conadAdapter];
+import { adapters, scraperConfig, setPdfExtractor, type ChainAdapter } from "@salvaspesa/scraper-core";
+import { extractPdfPages } from "./pdf";
+import { recordHistory } from "./history";
+setPdfExtractor(extractPdfPages);
+if (process.env.ESSELUNGA_STORES) scraperConfig.esselungaStores = process.env.ESSELUNGA_STORES.split(",").map((c) => c.trim().toUpperCase()).filter(Boolean);
 const args = process.argv.slice(2);
 const catalogMode = args.includes("--catalog");
 const DATA_DIR = path.resolve(import.meta.dirname, "../../../data", catalogMode ? "catalog" : "offers");
@@ -43,6 +37,8 @@ async function run(adapter: ChainAdapter): Promise<boolean> {
       );
       await writeFile(path.join(dir, "latest.json"), snapshot);
       await writeFile(path.join(dir, `${scrapedAt.slice(0, 10)}.json`), snapshot);
+      const tracked = await recordHistory(adapter.chainId, storeCode, scrapedAt.slice(0, 10), offers);
+      console.log(`   storico prezzi${storeCode ? ` ${storeCode}` : ""}: ${tracked} prodotti seguiti`);
     }
 
     console.log(`   pagine: ${result.pages.length}  offerte: ${result.offers.length}  scartate: ${result.rejected.length}  (${seconds}s)`);
@@ -63,6 +59,7 @@ async function run(adapter: ChainAdapter): Promise<boolean> {
 interface Tracked {
   chains?: string[];
   esselunga?: string[];
+  coop?: string[];
 }
 
 // --tracked: aggiorna solo le insegne e i negozi che l'app ha registrato in data/tracked.json (scritto dall'app web).
@@ -74,13 +71,15 @@ async function loadTracked(): Promise<Tracked | null> {
   }
 }
 
+if (process.env.COOP_STORES) scraperConfig.coopStores = process.env.COOP_STORES.split(",").map((c) => c.trim()).filter(Boolean);
 const useTracked = args.includes("--tracked");
 const requested = args.filter((arg) => !arg.startsWith("--"));
 
 let tracked: Tracked | null = null;
 if (useTracked) {
   tracked = await loadTracked();
-  if (tracked?.esselunga?.length && !process.env.ESSELUNGA_STORES) process.env.ESSELUNGA_STORES = tracked.esselunga.join(",");
+  if (tracked?.esselunga?.length && !process.env.ESSELUNGA_STORES) scraperConfig.esselungaStores = tracked.esselunga;
+  if (tracked?.coop?.length) scraperConfig.coopStores = tracked.coop;
   console.log(tracked ? `Elenco registrato dall'app: ${(tracked.chains ?? []).join(", ") || "nessuna insegna"}` : "Nessun elenco registrato: aggiorno tutte le insegne.");
 }
 

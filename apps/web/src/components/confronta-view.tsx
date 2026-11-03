@@ -72,7 +72,8 @@ export function ConfrontaView() {
   const categories: FilterOption[] = [
     { id: "all", label: "Tutte le Categorie", count: allGroups.length },
     ...CATEGORIES.filter((c) => profile.categories.length === 0 || profile.categories.includes(c.id)).map((c) => ({ id: c.id, label: c.label, icon: c.icon, count: allGroups.filter((g) => g.family.category === c.id).length })),
-    { id: "bio", label: "Bio & Filiera", icon: "eco", count: bioGroups.length },
+    // «Bio» non è una categoria del profilo: con una selezione attiva non si mostra.
+    ...(profile.categories.length === 0 ? [{ id: "bio", label: "Bio & Filiera", icon: "eco", count: bioGroups.length }] : []),
   ];
 
   const cartSavings = cart.reduce((sum, item) => sum + Math.max(0, (item.originalPrice ?? item.price) - item.price) * (item.quantity ?? 1), 0);

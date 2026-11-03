@@ -46,7 +46,7 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[FATTO]** Amazon.it nel tracker (link di ricerca; prezzi e prodotti con le credenziali dell'API ufficiale, vedi sotto)
 - **[FATTO]** Tracker dinamico: ricerca per marca/prodotto sulle offerte attive dei preferiti, miglior prezzo ora con scadenza, confronto con le altre catene, elenco di tutte le offerte trovate
 - **[FATTO]** Storico prezzi: ogni scraping salva uno snapshot giornaliero; il grafico a 30 giorni compare dal secondo giorno di dati
-- **[PROSSIMO]** Storico anche per prodotti non in offerta (oggi si vedono solo i giorni in cui il prodotto è in volantino)
+- **[FATTO]** Storico anche per i prodotti a listino (Aldi, Tigros, Eurospin, Conad) e non solo per quelli in volantino: `data/history/<catena>/` tiene un punto a ogni cambio di prezzo per ogni prodotto visto, ricostruito dagli snapshot già salvati la prima volta. Il listino completo non è pubblico per Lidl, Penny, Esselunga ed Ekom: per loro lo storico riguarda i prodotti che compaiono in volantino.
 - **[PROSSIMO]** Etichette affare: minimo storico, vero affare, sconto normale, finto sconto
 - **[FATTO]** «Segnala un prezzo»: modulo che salva la segnalazione nel browser e in `data/reports.jsonl`
 
@@ -98,11 +98,11 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 | Gulliver | **[FUTURO]** | Offerte per punto vendita su un'app che richiede la scelta del negozio, volantino digitale a immagini: serve un browser automatico |
 | Carrefour | **[PROSSIMO]** | Volantino generato da un servizio esterno (youroperator): serve capire se espone dati o solo immagini |
 | Conad | **[FATTO, parziale]** ~150 prodotti con prezzo | Spesa online (`spesaonline.conad.it`): il sito mostra il prezzo solo per circa l'8% dei prodotti (come Tigros, serve scegliere un negozio per il resto), senza prezzi barrati. Sono prezzi del negozio online predefinito, che possono differire dal tuo punto vendita. Il volantino (viewer Shopfully, immagini) e il file Excel dei volantini (vietato dal robots.txt del sito) non sono usati |
-| Pam, Coop | **[FUTURO]** | Contenuto caricato via JavaScript o URL diversi per punto vendita: serve un browser automatico (Playwright) |
+| Pam | **[FUTURO]** | Contenuto caricato via JavaScript o URL diversi per punto vendita: serve un browser automatico (Playwright) |
 | Aldi | **[FATTO]** ~500 prodotti (di cui ~80 con prezzo barrato = offerte) | Pagine categoria del sito (`/prodotti/.../k/<id>?page=N`): marca, formato, prezzo, prezzo barrato, €/kg-l, immagine. Aldi non ha un volantino a scadenza fissa online: le offerte sono i prodotti con prezzo barrato, il resto è listino. Esclusi abbigliamento, arredo, stagionali e prodotti «disponibili dal» giorno futuro |
 | MD | **[FUTURO]** | Il sito pubblica solo il volantino come immagini/viewer, nessun elenco prodotti con prezzo leggibile. Riconosciuto sulla mappa e tra i preferiti, ma l'app segnala «non ancora disponibile» |
 | iN's Mercato | **[FUTURO]** | Volantino in un viewer esterno (immagini): nessun dato strutturato. Riconosciuto sulla mappa, segnalato come non disponibile |
-| Coop | **[FUTURO]** | Volantini e prezzi dipendono dalla cooperativa locale e dal punto vendita, caricati via JavaScript: serve un browser automatico. Riconosciuto sulla mappa, segnalato come non disponibile |
+| Coop | **[FATTO, solo Liguria]** ~146 offerte valide oggi | Volantini di Coop Liguria pubblicati da Volantino Più: il negozio preferito si abbina (entro 400 m) all'elenco dei punti vendita, la pagina del negozio rimanda ai PDF dei volantini in corso (PDF con testo, letto con un parser a layout come Ekom). Ogni pagina riporta il proprio periodo («dal 15 al 28 ottobre», «fino al 21 ottobre», sezioni a due settimane): lo scraper tiene solo le offerte valide il giorno in cui gira. Prezzi «solo soci» segnati come tali; le promozioni senza prezzo (es. «20% sui prodotti dei produttori locali») non sono lette. Senza immagini. Le altre cooperative (Lombardia, ecc.) hanno altri canali e non sono ancora collegate |
 | Iper Tosano | **[FUTURO]** | Il sito pubblica solo il volantino a immagini. Riconosciuto sulla mappa (insegna «Iper Tosano»), segnalato come non disponibile |
 | L'Iper | **[FUTURO]** | `volantini.iper.it` usa un servizio di ricerca (Algolia) con chiave pubblica nel codice, ma il nome dell'indice non è esposto e l'elenco indici richiede una chiave amministrativa: non l'ho aggirato. Riconosciuto sulla mappa, segnalato come non disponibile |
 
