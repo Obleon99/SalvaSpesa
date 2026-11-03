@@ -3,7 +3,7 @@ import { classifyProduct, normalizeText } from "@salvaspesa/deal-logic";
 import type { OfferView } from "@salvaspesa/app-core";
 import { useApp } from "./state";
 
-interface Prepared {
+export interface Prepared {
   offer: OfferView;
   group: string;
   text: string;
@@ -21,6 +21,12 @@ function prepare(offers: OfferView[]): Prepared[] {
     preparedCache.set(offers, prepared);
   }
   return prepared;
+}
+
+// Tutte le offerte preparate (senza filtro per categorie): servono alla lista della spesa.
+export function usePrepared(): Prepared[] {
+  const { data } = useApp();
+  return useMemo(() => prepare(data?.offers ?? []), [data]);
 }
 
 // Offerte dei supermercati preferiti, filtrate per categorie del profilo e per testo, dalle più scontate.

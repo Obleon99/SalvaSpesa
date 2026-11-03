@@ -20,7 +20,10 @@ export async function fetchText(url: string, { retries = 2, timeoutMs = 30000 }:
         throw new Error(`HTTP ${response.status} su ${url}`);
       }
       if (!response.ok) throw new Error(`HTTP ${response.status} su ${url}`);
-      return await response.text();
+      const text = await response.text();
+      // Cede un attimo il thread: il telefono ridisegna l'interfaccia tra una pagina e l'altra invece di restare bloccato.
+      await sleep(8);
+      return text;
     } catch (error) {
       lastError = error;
       const message = (error as Error).message;

@@ -1,8 +1,9 @@
 import { memo } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import type { OfferView } from "@salvaspesa/app-core";
 import { ChainLogo } from "./chain-logo";
 import { Icon } from "./icons";
+import { openOffer } from "./offer-sheet";
 import { colors, radius, shadow } from "./theme";
 
 export const euro = (n: number) => `${n.toFixed(2).replace(".", ",")} €`;
@@ -14,7 +15,7 @@ function Thumb({ offer, size }: { offer: OfferView; size: number | "fill" }) {
     <Image source={{ uri: offer.imageUrl }} style={[styles.thumb, style]} resizeMode="contain" resizeMethod="resize" fadeDuration={80} />
   ) : (
     <View style={[styles.thumb, styles.noThumb, style]}>
-      <Icon name="cart" size={26} color="#9db3a6" />
+      <Icon name="cart" size={26} color="#94a9c4" />
     </View>
   );
 }
@@ -40,7 +41,7 @@ function ChainTag({ offer }: { offer: OfferView }) {
 
 export const OfferRow = memo(function OfferRow({ offer }: { offer: OfferView }) {
   return (
-    <View style={styles.row}>
+    <Pressable style={styles.row} onPress={() => openOffer(offer)} android_ripple={{ color: "#dbeafe" }}>
       <Thumb offer={offer} size={72} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.name} numberOfLines={2}>
@@ -56,13 +57,13 @@ export const OfferRow = memo(function OfferRow({ offer }: { offer: OfferView }) 
         {offer.originalPrice != null && <Text style={styles.old}>{euro(offer.originalPrice)}</Text>}
         <Discount offer={offer} />
       </View>
-    </View>
+    </Pressable>
   );
 });
 
 export const OfferTile = memo(function OfferTile({ offer, width }: { offer: OfferView; width?: number }) {
   return (
-    <View style={[styles.tile, width ? { width } : { flex: 1 }]}>
+    <Pressable style={[styles.tile, width ? { width } : { flex: 1 }]} onPress={() => openOffer(offer)}>
       <View style={styles.tileImage}>
         <Thumb offer={offer} size="fill" />
         <View style={styles.tileBadge}>
@@ -82,14 +83,14 @@ export const OfferTile = memo(function OfferTile({ offer, width }: { offer: Offe
         <Text style={styles.price}>{euro(offer.price)}</Text>
         {offer.originalPrice != null && <Text style={styles.old}>{euro(offer.originalPrice)}</Text>}
       </View>
-    </View>
+    </Pressable>
   );
 });
 
 const styles = StyleSheet.create({
-  thumb: { borderRadius: radius.sm, backgroundColor: "#fff" },
+  thumb: { borderRadius: radius.sm, backgroundColor: "#f7fbff" },
   thumbFill: { width: "100%", height: "100%" },
-  noThumb: { backgroundColor: "#eef3f0", alignItems: "center", justifyContent: "center" },
+  noThumb: { backgroundColor: "#e6effb", alignItems: "center", justifyContent: "center" },
   row: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 14, marginBottom: 10, padding: 10, borderRadius: radius.md, backgroundColor: colors.card, ...shadow },
   tile: { margin: 6, padding: 10, borderRadius: radius.md, backgroundColor: colors.card, gap: 3, ...shadow },
   tileImage: { aspectRatio: 1, marginBottom: 6 },

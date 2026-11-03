@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { offerKey } from "@salvaspesa/app-core";
 import { Icon, type IconName } from "../icons";
+import { MyList } from "../my-list";
 import { OfferTile, euro } from "../offer-views";
 import { useVisibleOffers } from "../offers";
 import { useApp } from "../state";
@@ -102,6 +103,8 @@ export default function Home() {
           action={<Button label="Riprova" onPress={() => void refresh(true)} />}
         />
       )}
+
+      <MyList />
     </ScrollView>
   );
 }
@@ -131,7 +134,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   hero: { backgroundColor: colors.primary, paddingHorizontal: 20, paddingBottom: 56, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, gap: 6 },
   heroTitle: { color: "#fff", fontSize: 26, fontWeight: "800" },
-  heroText: { color: "#d1fae5", fontSize: 14, lineHeight: 20 },
+  heroText: { color: "#dbeafe", fontSize: 14, lineHeight: 20 },
   pill: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: 10, maxWidth: "100%", backgroundColor: "rgba(255,255,255,0.18)", borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6 },
   pillText: { color: "#fff", fontSize: 12, fontWeight: "600" },
   stats: { flexDirection: "row", gap: 10, paddingHorizontal: 14, marginTop: -34 },

@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   toolbar: { padding: 14, gap: 10 },
   searchBox: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.card, ...shadow },
   search: { flex: 1, paddingVertical: 10, fontSize: 15, color: colors.text },
-  toggle: { flexDirection: "row", alignSelf: "flex-start", borderRadius: radius.pill, backgroundColor: "#e3ebe6", padding: 3 },
+  toggle: { flexDirection: "row", alignSelf: "flex-start", borderRadius: radius.pill, backgroundColor: "#dde9f7", padding: 3 },
   toggleButton: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 6, borderRadius: radius.pill },
   toggleOn: { backgroundColor: colors.primary },
   toggleText: { color: colors.text, fontWeight: "600", fontSize: 13 },

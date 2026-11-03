@@ -1,16 +1,16 @@
 import { Platform, type ViewStyle } from "react-native";
 
 export const colors = {
-  primary: "#15803d",
-  primaryDark: "#0f5f2e",
-  primarySoft: "#dcfce7",
+  primary: "#1d5fd1",
+  primaryDark: "#1747a3",
+  primarySoft: "#dbeafe",
   accent: "#f97316",
   danger: "#dc2626",
-  bg: "#f4f7f5",
-  card: "#ffffff",
+  bg: "#eef5fd",
+  card: "#f7fbff",
   text: "#0f172a",
   muted: "#64748b",
-  line: "#e5eae7",
+  line: "#dbe6f3",
 };
 
 export const radius = { sm: 10, md: 16, lg: 22, pill: 999 };

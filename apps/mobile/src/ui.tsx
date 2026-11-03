@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
   stateText: { color: colors.muted, textAlign: "center", lineHeight: 20 },
   skeletonWrap: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 8 },
   skeleton: { width: "50%", padding: 6 },
-  skeletonImage: { aspectRatio: 1, borderRadius: radius.md, backgroundColor: "#e7ece9", marginBottom: 8 },
-  skeletonLine: { height: 10, borderRadius: 5, backgroundColor: "#e7ece9", marginBottom: 6 },
+  skeletonImage: { aspectRatio: 1, borderRadius: radius.md, backgroundColor: "#e0eaf6", marginBottom: 8 },
+  skeletonLine: { height: 10, borderRadius: 5, backgroundColor: "#e0eaf6", marginBottom: 6 },
 });

@@ -131,7 +131,7 @@ export default function Zona() {
         </Pressable>
         {busy && status ? (
           <View style={[styles.chip, styles.busyChip]}>
-            <ActivityIndicator size="small" color="#15803d" />
+            <ActivityIndicator size="small" color="#1d5fd1" />
             <Text style={styles.chipText}>{status}</Text>
           </View>
         ) : null}
@@ -147,7 +147,7 @@ export default function Zona() {
         <View style={styles.legend}>
           <Legend color="#ea580c" label="volantino disponibile" />
           <Legend color="#94a3b8" label="non ancora" />
-          <Legend color="#15803d" label="preferito" />
+          <Legend color="#1d5fd1" label="preferito" />
         </View>
       )}
 
@@ -188,15 +188,15 @@ function Legend({ color, label }: { color: string; label: string }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#f8fafc" },
+  screen: { flex: 1, backgroundColor: "#eef5fd" },
   top: { position: "absolute", top: 12, left: 12, right: 12, gap: 8, alignItems: "flex-start" },
   searchRow: { flexDirection: "row", gap: 8, alignSelf: "stretch" },
-  input: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
-  go: { paddingHorizontal: 18, borderRadius: 12, backgroundColor: "#15803d", alignItems: "center", justifyContent: "center", elevation: 4 },
+  input: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: "#f7fbff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
+  go: { paddingHorizontal: 18, borderRadius: 12, backgroundColor: "#1d5fd1", alignItems: "center", justifyContent: "center", elevation: 4 },
   goText: { color: "#fff", fontWeight: "700" },
-  chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: "#fff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: "#f7fbff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
   busyChip: { flexDirection: "row", alignItems: "center", gap: 8 },
-  chipPrimary: { backgroundColor: "#15803d", borderColor: "#15803d" },
+  chipPrimary: { backgroundColor: "#1d5fd1", borderColor: "#1d5fd1" },
   chipText: { fontWeight: "600", color: "#0f172a" },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
   emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
@@ -205,11 +205,11 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
   legendText: { fontSize: 12, color: "#334155" },
-  sheet: { position: "absolute", left: 12, right: 12, bottom: 12, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0", elevation: 6 },
+  sheet: { position: "absolute", left: 12, right: 12, bottom: 12, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, backgroundColor: "#f7fbff", borderWidth: 1, borderColor: "#e2e8f0", elevation: 6 },
   name: { fontWeight: "700", fontSize: 16 },
   muted: { color: "#64748b", fontSize: 12 },
-  status: { color: "#15803d", fontSize: 12, marginTop: 2 },
-  favorite: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: "#15803d" },
-  favoriteOn: { backgroundColor: "#15803d" },
-  favoriteText: { color: "#15803d", fontWeight: "700" },
+  status: { color: "#1d5fd1", fontSize: 12, marginTop: 2 },
+  favorite: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: "#1d5fd1" },
+  favoriteOn: { backgroundColor: "#1d5fd1" },
+  favoriteText: { color: "#1d5fd1", fontWeight: "700" },
 });

@@ -31,7 +31,7 @@ const HTML = `<!doctype html><html><head><meta charset="utf-8">
 .me{width:16px;height:16px;border-radius:50%;background:#0284c7;border:3px solid #fff;box-shadow:0 0 0 2px rgba(2,132,199,.4)}
 .m{box-sizing:border-box;width:32px;height:32px;border-radius:50%;background:#fff center/72% no-repeat;border:3px solid #94a3b8;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font:800 9px/1 sans-serif;overflow:hidden;transition:transform .12s}
 .m.k{border-color:#ea580c}
-.m.f{border-color:#15803d;box-shadow:0 0 0 3px rgba(21,128,61,.28),0 1px 4px rgba(0,0,0,.35)}
+.m.f{border-color:#1d5fd1;box-shadow:0 0 0 3px rgba(29,95,209,.28),0 1px 4px rgba(0,0,0,.35)}
 .m.s{transform:scale(1.28)}
 .leaflet-div-icon{background:none;border:0}</style>
 </head><body><div id="map"></div>
@@ -44,7 +44,7 @@ var layer=L.layerGroup().addTo(map),me=null,stores=[],markers={},favs={},selecte
 function setLogos(css){var e=document.createElement("style");e.textContent=css;document.head.appendChild(e)}
 function style(s){var f=favs[s.id],sel=selected===s.id,hide=markers[s.id]&&markers[s.id].m;
 if(hide)return {radius:1,weight:0,fillOpacity:0,opacity:0};
-return {radius:sel?13:f?11:9,weight:sel?4:2,color:sel?"#0f5f2e":"#fff",fillColor:f?"#15803d":s.k?"#ea580c":"#94a3b8",fillOpacity:1,opacity:1}}
+return {radius:sel?13:f?11:9,weight:sel?4:2,color:sel?"#1747a3":"#fff",fillColor:f?"#1d5fd1":s.k?"#ea580c":"#94a3b8",fillOpacity:1,opacity:1}}
 function icon(s,cls){var b=s.b;return L.divIcon({className:"",html:'<div class="'+cls+(b?'" style="background:'+b[0]+';color:'+b[1]+'">'+b[2]:'">')+'</div>',iconSize:[32,32],iconAnchor:[16,16]})}
 function cls(s){return "m"+(s.b?"":" l-"+s.c)+(s.k?" k":"")+(favs[s.id]?" f":"")+(selected===s.id?" s":"")}
 function render(){var want={};if(map.getZoom()>=13){var bd=map.getBounds().pad(0.1),n=0;stores.forEach(function(s){if(n<70&&bd.contains([s.lat,s.lng])){want[s.id]=1;n++}})}

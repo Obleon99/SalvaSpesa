@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "../icons";
+import { OfferSheet } from "../offer-sheet";
 import { Onboarding } from "../onboarding";
 import { AppProvider, useApp } from "../state";
 import { colors } from "../theme";
@@ -35,9 +36,11 @@ function Shell() {
       >
         <Tabs.Screen name="index" options={{ title: "Home", headerShown: false, tabBarIcon: tabIcon("home") }} />
         <Tabs.Screen name="offerte" options={{ title: "Offerte", tabBarIcon: tabIcon("tag") }} />
+        <Tabs.Screen name="lista" options={{ title: "Lista", tabBarIcon: tabIcon("cart") }} />
         <Tabs.Screen name="zona" options={{ title: "La mia zona", tabBarIcon: tabIcon("pin") }} />
         <Tabs.Screen name="profilo" options={{ title: "Profilo", tabBarIcon: tabIcon("user") }} />
       </Tabs>
+      <OfferSheet />
       {!ready ? <View style={styles.cover} /> : !onboarded ? <View style={styles.cover}><Onboarding /></View> : null}
     </>
   );

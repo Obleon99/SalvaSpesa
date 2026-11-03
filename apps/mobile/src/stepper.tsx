@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   stepper: { flex: 1 },
   label: { color: "#475569", fontSize: 12, fontWeight: "600", marginTop: 12, marginBottom: 4, textTransform: "uppercase" },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
-  button: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: "#cbd5e1", backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  button: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: "#cbd5e1", backgroundColor: "#f7fbff", alignItems: "center", justifyContent: "center" },
   buttonText: { fontSize: 20, lineHeight: 22 },
   value: { fontSize: 18, fontWeight: "700", minWidth: 20, textAlign: "center" },
 });

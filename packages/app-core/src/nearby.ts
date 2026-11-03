@@ -8,6 +8,8 @@ const OVERPASS_ENDPOINTS = [
 ];
 const USER_AGENT = "SpesaChiara/0.1 (progetto personale di confronto volantini)";
 export const MAX_RADIUS_KM = 25;
+// Solo insegne di supermercati note: negozietti e attività con tag "supermarket" generici non servono al confronto dei volantini.
+const KNOWN_CHAINS = "esselunga|conad|coop|lidl|eurospin|carrefour|pam|panorama|penny|aldi|md|despar|eurospar|interspar|famila|superstore|bennet|tigros|ekom|gulliver|tosano|iper|todis|crai|dok|sigma|simply|gigante|basko|natura";
 
 interface OverpassElement {
   type: string;
@@ -34,7 +36,9 @@ export async function fetchNearbyStores(lat: number, lng: number, radiusKm: numb
   const radius = Math.min(Math.max(radiusKm, 1), MAX_RADIUS_KM);
   const roundedLat = Math.round(lat * 1000) / 1000;
   const roundedLng = Math.round(lng * 1000) / 1000;
-  const query = `[out:json][timeout:50];nwr["shop"="supermarket"](around:${Math.round(radius * 1000)},${roundedLat},${roundedLng});out center tags 400;`;
+  const around = `(around:${Math.round(radius * 1000)},${roundedLat},${roundedLng})`;
+  const matches = ["name", "brand", "operator"].map((tag) => `nwr["shop"="supermarket"]["${tag}"~"${KNOWN_CHAINS}",i]${around};`).join("");
+  const query = `[out:json][timeout:50];(${matches});out center tags 400;`;
   const attempts = OVERPASS_ENDPOINTS.map(async (endpoint) => {
     const response = await fetch(endpoint, {
       method: "POST",
@@ -45,7 +49,8 @@ export async function fetchNearbyStores(lat: number, lng: number, radiusKm: numb
     return ((await response.json()) as { elements?: OverpassElement[] }).elements ?? [];
   });
   const elements = await Promise.any(attempts);
-  return dedupeStores(elements.map(toStore).filter((store): store is RawStore => store !== null));
+  // Il filtro del server è largo (nomi brevi come "md" o "pam"): quello preciso è riconoscere l'insegna.
+  return dedupeStores(elements.map(toStore).filter((store): store is RawStore => store !== null && store.chainId !== "altro"));
 }
 
 export interface GeocodedPlace {

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { dedupeStores, isSameStore, loadOffers, type FavoriteRef, type OffersResponse } from "@salvaspesa/app-core";
+import { dedupeStores, isSameStore, loadOffers, pruneStorage, type FavoriteRef, type OffersResponse } from "@salvaspesa/app-core";
+import { MAX_LIST_ITEMS, type ListItem } from "./list";
 import { readText, snapshotStorage, writeText } from "./storage";
 
 export interface Profile {
@@ -21,9 +22,10 @@ interface Persisted {
   profile: Profile;
   location: SavedLocation | null;
   onboarded: boolean;
+  list: ListItem[];
 }
 
-const EMPTY: Persisted = { favorites: [], categories: [], profile: { name: "", adults: 1, children: 0, weeklyBudget: null }, location: null, onboarded: false };
+const EMPTY: Persisted = { favorites: [], categories: [], profile: { name: "", adults: 1, children: 0, weeklyBudget: null }, location: null, onboarded: false, list: [] };
 
 interface AppState extends Persisted {
   ready: boolean;
@@ -40,6 +42,10 @@ interface AppState extends Persisted {
   completeOnboarding: (profile: Profile, categories: string[]) => void;
   restartOnboarding: () => void;
   refresh: (force?: boolean) => Promise<void>;
+  addToList: (item: ListItem) => void;
+  updateListItem: (id: string, patch: Partial<ListItem>) => void;
+  removeFromList: (id: string) => void;
+  clearDone: () => void;
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -53,13 +59,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [updating, setUpdating] = useState(false);
   const [progress, setProgress] = useState("");
   const busy = useRef(false);
+  const again = useRef(false);
+  const latest = useRef<(force?: boolean, cacheOnly?: boolean) => Promise<void>>(async () => undefined);
+  const previous = useRef<FavoriteRef[]>([]);
 
   useEffect(() => {
     readText(STATE_KEY).then((raw) => {
       if (raw) {
         try {
           const saved = JSON.parse(raw) as Partial<Persisted>;
-          setPersisted({ ...EMPTY, ...saved, favorites: dedupeStores(saved.favorites ?? []), profile: { ...EMPTY.profile, ...saved.profile } });
+          const favorites = dedupeStores(saved.favorites ?? []);
+          setPersisted({ ...EMPTY, ...saved, favorites, list: (saved.list ?? []).slice(0, MAX_LIST_ITEMS), profile: { ...EMPTY.profile, ...saved.profile } });
+          // Pulizia dei file non più utili, a comodo e senza bloccare l'avvio.
+          setTimeout(() => void pruneStorage(favorites, snapshotStorage), 3000);
         } catch {}
       }
       setReady(true);
@@ -72,30 +84,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refresh = useCallback(
-    async (force = false) => {
-      if (busy.current) return;
+    async (force = false, cacheOnly = false) => {
+      // Se un aggiornamento è già in corso se ne accoda uno solo per dopo, così nessuna modifica va persa.
+      if (busy.current) {
+        again.current = true;
+        return;
+      }
       busy.current = true;
-      setUpdating(true);
+      setUpdating(!cacheOnly);
       try {
         // Prima si mostra subito quello che è già sul telefono; la schermata di caricamento resta solo se non c'è nulla.
         const cached = await loadOffers(persisted.favorites, snapshotStorage, { cacheOnly: true });
-        if (cached.offers.length > 0) setData(cached);
+        if (cached.offers.length > 0 || cacheOnly) setData(cached);
         else setLoading(true);
-        setData(await loadOffers(persisted.favorites, snapshotStorage, { force, onProgress: setProgress }));
+        if (!cacheOnly) setData(await loadOffers(persisted.favorites, snapshotStorage, { force, onProgress: setProgress }));
       } finally {
         setUpdating(false);
         busy.current = false;
         setLoading(false);
         setProgress("");
+        if (again.current) {
+          again.current = false;
+          setTimeout(() => void latest.current(), 300);
+        }
       }
     },
     [persisted.favorites],
   );
+  latest.current = refresh;
 
-  // Quando cambiano i preferiti si ricarica: gli snapshot recenti sono riusati, quelli vecchi scaricati di nuovo.
+  // Quando cambiano i preferiti si ricarica, ma con calma: più scelte ravvicinate diventano un solo aggiornamento,
+  // e togliere un negozio non usa la rete. Gli snapshot recenti sono riusati, solo ciò che manca viene scaricato.
   useEffect(() => {
-    if (ready) void refresh();
-  }, [ready, refresh]);
+    if (!ready) return;
+    const before = previous.current;
+    previous.current = persisted.favorites;
+    const onlyRemoved = before.length > 0 && persisted.favorites.every((f) => before.some((p) => p.id === f.id));
+    const timer = setTimeout(() => void refresh(false, onlyRemoved), onlyRemoved ? 0 : 900);
+    return () => clearTimeout(timer);
+  }, [ready, refresh, persisted.favorites]);
 
   const value = useMemo<AppState>(
     () => ({
@@ -115,6 +142,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       completeOnboarding: (profile, categories) => update({ ...persisted, profile, categories, onboarded: true }),
       restartOnboarding: () => update({ ...persisted, onboarded: false }),
       setLocation: (location) => update({ ...persisted, location }),
+      addToList: (item) => update({ ...persisted, list: persisted.list.some((x) => x.id === item.id) ? persisted.list : [item, ...persisted.list].slice(0, MAX_LIST_ITEMS) }),
+      updateListItem: (id, patch) => update({ ...persisted, list: persisted.list.map((x) => (x.id === id ? { ...x, ...patch } : x)) }),
+      removeFromList: (id) => update({ ...persisted, list: persisted.list.filter((x) => x.id !== id) }),
+      clearDone: () => update({ ...persisted, list: persisted.list.filter((x) => !x.done) }),
       toggleCategory: (id) =>
         update({ ...persisted, categories: persisted.categories.includes(id) ? persisted.categories.filter((c) => c !== id) : [...persisted.categories, id] }),
     }),

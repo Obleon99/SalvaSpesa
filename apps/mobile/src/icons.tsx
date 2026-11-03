@@ -24,7 +24,12 @@ type Name =
   | "alert"
   | "chevronRight"
   | "shield"
-  | "store";
+  | "store"
+  | "plus"
+  | "minus"
+  | "trash"
+  | "external"
+  | "checkSquare";
 
 const SHAPES: Record<Name, ReactElement> = {
   home: (
@@ -140,6 +145,33 @@ const SHAPES: Record<Name, ReactElement> = {
   ),
   chevronRight: <Polyline points="9 18 15 12 9 6" />,
   shield: <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+  plus: (
+    <>
+      <Line x1="12" y1="5" x2="12" y2="19" />
+      <Line x1="5" y1="12" x2="19" y2="12" />
+    </>
+  ),
+  minus: <Line x1="5" y1="12" x2="19" y2="12" />,
+  trash: (
+    <>
+      <Polyline points="3 6 5 6 21 6" />
+      <Path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <Path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </>
+  ),
+  external: (
+    <>
+      <Path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <Polyline points="15 3 21 3 21 9" />
+      <Line x1="10" y1="14" x2="21" y2="3" />
+    </>
+  ),
+  checkSquare: (
+    <>
+      <Polyline points="9 11 12 14 22 4" />
+      <Path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </>
+  ),
   store: (
     <>
       <Path d="M3 9l1-5h16l1 5" />

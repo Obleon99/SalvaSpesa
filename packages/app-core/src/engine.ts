@@ -39,6 +39,10 @@ const PROBES: Record<string, string[]> = {
   penny: ["https://www.penny.it/offerte"],
   ekom: ["https://www.ekomdiscount.it/ebsn/api/leaflet/search?parent_leaflet_type_id=1"],
   aldi: ["https://www.aldi.it/prodotti"],
+  eurospin: [
+    "https://www.eurospin.com/content/eurospin/it/it/home/products/jcr:content/root/container/productlisting.model.json?q=&page=1&size=5&by_typeOffer=offerta&by_typeOffer=family&by_typeOffer=limitati&by_typeOffer=ribassati",
+  ],
+  tigros: ["https://www.tigros.it/ebsn/api/products?promo=true&page=1&page_size=5&hash=w0d0t0"],
 };
 const PROBE_USER_AGENT = "Mozilla/5.0 (compatible; SpesaChiaraBot/0.1; progetto personale di confronto prezzi)";
 
@@ -48,10 +52,16 @@ const MAX_AGE_MS = 6 * HOUR_MS;
 // Anche se l'impronta non cambia, dopo questo tempo si riscarica comunque (protezione contro pagine "statiche").
 const PROBE_MAX_AGE_MS = 3 * DAY_MS;
 const RESOLUTION_TTL_MS = 30 * DAY_MS;
+// Un aggiornamento manuale non riscarica comunque prima di questo tempo (più lungo per le insegne senza controllo leggero).
+const FORCE_MIN_PROBED_MS = 10 * 60 * 1000;
+const FORCE_MIN_BLIND_MS = 3 * HOUR_MS;
+// Al massimo due insegne scaricano e analizzano insieme: l'analisi pesa sul processore e l'app deve restare fluida.
+const MAX_PARALLEL_SCRAPES = 2;
+const EXPIRED_KEEP_MS = 3 * DAY_MS;
 // Spazio massimo occupato dagli snapshot sul telefono.
 export const STORAGE_BUDGET_BYTES = 8 * 1024 * 1024;
 const ORPHAN_MAX_AGE_MS = 14 * DAY_MS;
-const MAX_DESCRIPTION = 160;
+const MAX_DESCRIPTION = 120;
 
 const verifiedAt = (snapshot: Snapshot) => Date.parse(snapshot.checkedAt ?? snapshot.scrapedAt);
 const isFresh = (snapshot: Snapshot | null, maxAgeMs: number) => snapshot !== null && Date.now() - verifiedAt(snapshot) < maxAgeMs;
@@ -151,6 +161,22 @@ interface Tracker {
 // Cede il controllo al thread dell'interfaccia: tra un passo e l'altro i tocchi e lo scorrimento restano fluidi.
 const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
+// Coda semplice: solo poche insegne alla volta fanno lavoro pesante.
+let running = 0;
+const waiting: (() => void)[] = [];
+async function limited<T>(task: () => Promise<T>): Promise<T> {
+  if (running >= MAX_PARALLEL_SCRAPES) await new Promise<void>((resolve) => waiting.push(resolve));
+  running++;
+  try {
+    return await task();
+  } finally {
+    running--;
+    waiting.shift()?.();
+  }
+}
+
+const hasValidOffers = (snapshot: Snapshot) => snapshot.offers.some((o) => Date.parse(o.validTo) >= Date.now());
+
 // Volantino già scaricato e invariato → basta segnare la verifica; altrimenti si scarica. Restituisce un eventuale errore.
 async function refreshStale(chainId: string, stale: string[], snapshots: Map<string, Snapshot | null>, storage: SnapshotStorage): Promise<string | null> {
   const fingerprint = await fingerprintOf(chainId);
@@ -201,11 +227,18 @@ async function loadChain(chainId: string, favorites: FavoriteRef[], storage: Sna
   await yieldToUi();
 
   let failure: string | null = null;
-  const stale = options.cacheOnly ? [] : [...targets.keys()].filter((code) => options.force || !isFresh(snapshots.get(code) ?? null, maxAge));
+  const forceMin = PROBES[chainId] ? FORCE_MIN_PROBED_MS : FORCE_MIN_BLIND_MS;
+  const stale = options.cacheOnly
+    ? []
+    : [...targets.keys()].filter((code) => {
+        const snapshot = snapshots.get(code) ?? null;
+        if (!snapshot || !hasValidOffers(snapshot)) return true;
+        return !isFresh(snapshot, options.force ? forceMin : maxAge);
+      });
   if (stale.length > 0) {
     track.begin(chainName);
     try {
-      failure = await refreshStale(chainId, stale, snapshots, storage);
+      failure = await limited(() => refreshStale(chainId, stale, snapshots, storage));
     } finally {
       track.end(chainName);
     }
@@ -215,7 +248,7 @@ async function loadChain(chainId: string, favorites: FavoriteRef[], storage: Sna
   const now = Date.now();
   for (const [code, group] of targets) {
     const snapshot = snapshots.get(code) ?? null;
-    const status = snapshot ? (isFresh(snapshot, maxAge) || options.cacheOnly ? "ok" : "stale") : "error";
+    const status = snapshot ? (isFresh(snapshot, Math.max(maxAge, options.force ? forceMin : 0)) || options.cacheOnly ? "ok" : "stale") : "error";
     const checked = snapshot ? (snapshot.checkedAt ?? snapshot.scrapedAt) : null;
     for (const f of group) {
       result.sources.push({
@@ -314,4 +347,27 @@ export async function loadOffers(favorites: FavoriteRef[], storage: SnapshotStor
     await enforceBudget(storage, keep);
   }
   return { generatedAt: times[0] ?? null, offers, sources };
+}
+
+// Pulizia all'avvio: tiene sul telefono solo ciò che serve (negozi preferiti, volantini ancora validi o scaduti da poco, sotto il limite di spazio).
+export async function pruneStorage(favorites: FavoriteRef[], storage: SnapshotStorage): Promise<void> {
+  if (!storage.list || !storage.remove) return;
+  try {
+    const favoriteIds = favorites.map((f) => f.id.replace(/[^a-zA-Z0-9_-]/g, "_"));
+    const files = await storage.list();
+    for (const file of files) {
+      if (file.key.startsWith("resolve-")) {
+        // Associazioni negozio→volantino: sparisce quella di un negozio non più preferito o scaduta.
+        const raw = await storage.read(file.key);
+        const at = raw ? ((JSON.parse(raw) as { at?: number }).at ?? 0) : 0;
+        if (!favoriteIds.some((id) => file.key.endsWith(`-${id}`)) || Date.now() - at > RESOLUTION_TTL_MS) await storage.remove(file.key);
+      } else if (file.key.startsWith("offers-")) {
+        const raw = await storage.read(file.key);
+        const snapshot = raw ? (JSON.parse(raw) as Snapshot) : null;
+        if (!snapshot || (!hasValidOffers(snapshot) && Date.now() - Date.parse(snapshot.checkedAt ?? snapshot.scrapedAt) > EXPIRED_KEEP_MS)) await storage.remove(file.key);
+      }
+    }
+  } catch {
+    // la pulizia non deve mai bloccare l'app
+  }
 }

@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   label: { color: colors.muted, fontSize: 12, fontWeight: "700", marginTop: 12, marginBottom: 4, textTransform: "uppercase" },
   value: { fontSize: 15, color: colors.text },
   muted: { color: colors.muted },
-  input: { padding: 12, borderRadius: radius.sm, backgroundColor: "#f4f7f5", borderWidth: 1, borderColor: colors.line, color: colors.text },
+  input: { padding: 12, borderRadius: radius.sm, backgroundColor: "#eef5fd", borderWidth: 1, borderColor: colors.line, color: colors.text },
   household: { flexDirection: "row", gap: 24 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
 });
