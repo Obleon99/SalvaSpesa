@@ -1,5 +1,6 @@
 import { memo, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { Icon, type IconName } from "./icons";
 import { colors, radius, shadow } from "./theme";
 
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
@@ -23,10 +24,10 @@ export function Button({ label, onPress, kind = "primary", disabled }: { label: 
 }
 
 // Messaggio di stato con icona grande: sostituisce le frasi secche tipo «Nessuna offerta».
-export function StateMessage({ emoji, title, text, busy, action }: { emoji: string; title: string; text?: string; busy?: boolean; action?: ReactNode }) {
+export function StateMessage({ icon, title, text, busy, action }: { icon?: IconName; title: string; text?: string; busy?: boolean; action?: ReactNode }) {
   return (
     <View style={styles.state}>
-      {busy ? <ActivityIndicator size="large" color={colors.primary} /> : <Text style={styles.stateEmoji}>{emoji}</Text>}
+      <View style={styles.stateIcon}>{busy || !icon ? <ActivityIndicator size="large" color={colors.primary} /> : <Icon name={icon} size={30} color={colors.primary} />}</View>
       <Text style={styles.stateTitle}>{title}</Text>
       {text ? <Text style={styles.stateText}>{text}</Text> : null}
       {action}
@@ -59,7 +60,7 @@ const styles = StyleSheet.create({
   buttonGhost: { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.primary },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   state: { alignItems: "center", gap: 8, paddingVertical: 36, paddingHorizontal: 28 },
-  stateEmoji: { fontSize: 52 },
+  stateIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
   stateTitle: { fontSize: 17, fontWeight: "700", color: colors.text, textAlign: "center", marginTop: 4 },
   stateText: { color: colors.muted, textAlign: "center", lineHeight: 20 },
   skeletonWrap: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 8 },

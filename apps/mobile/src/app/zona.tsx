@@ -2,8 +2,10 @@ import { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Location from "expo-location";
 import { fetchNearbyStores, formatDistance, geocodeAddress, haversineKm, type LatLng, type StoreWithDistance } from "@salvaspesa/app-core";
+import { Icon } from "../icons";
 import { StoresMap } from "../stores-map";
 import { useApp } from "../state";
+import { colors } from "../theme";
 
 const RADIUS_KM = 8;
 // Oltre questa distanza dal punto cercato compare «Cerca in quest'area».
@@ -102,7 +104,9 @@ export default function Zona() {
         <StoresMap stores={stores} favoriteIds={favoriteIds} center={searchCenter} selectedId={selectedId} onSelect={setSelectedId} onMove={setMapCenter} />
       ) : (
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>🗺️</Text>
+          <View style={styles.emptyIcon}>
+            <Icon name="map" size={34} color={colors.primary} />
+          </View>
           <Text style={styles.emptyText}>Cerca un indirizzo oppure usa la tua posizione: vedrai i supermercati sulla mappa e potrai scegliere i tuoi preferiti.</Text>
         </View>
       )}
@@ -122,7 +126,8 @@ export default function Zona() {
           </Pressable>
         </View>
         <Pressable style={styles.chip} onPress={locate} disabled={busy}>
-          <Text style={styles.chipText}>📍 Usa la mia posizione</Text>
+          <Icon name="locate" size={15} color={colors.primary} />
+          <Text style={styles.chipText}>Usa la mia posizione</Text>
         </Pressable>
         {busy && status ? (
           <View style={[styles.chip, styles.busyChip]}>
@@ -132,14 +137,17 @@ export default function Zona() {
         ) : null}
         {moved && !busy && (
           <Pressable style={[styles.chip, styles.chipPrimary]} onPress={searchHere} disabled={busy}>
-            <Text style={[styles.chipText, { color: "#fff" }]}>🔎 Cerca supermercati in quest'area</Text>
+            <Icon name="search" size={15} color="#fff" />
+            <Text style={[styles.chipText, { color: "#fff" }]}>Cerca supermercati in quest'area</Text>
           </Pressable>
         )}
       </View>
 
       {!selected && stores.length > 0 && (
         <View style={styles.legend}>
-          <Text style={styles.legendText}>🟠 volantino disponibile   ⚪ non ancora   🟢 preferito</Text>
+          <Legend color="#ea580c" label="volantino disponibile" />
+          <Legend color="#94a3b8" label="non ancora" />
+          <Legend color="#15803d" label="preferito" />
         </View>
       )}
 
@@ -161,10 +169,20 @@ export default function Zona() {
             style={[styles.favorite, isFavorite && styles.favoriteOn]}
             onPress={() => toggleFavorite({ id: selected.id, name: selected.name, chainId: selected.chainId, chainName: selected.chainName, lat: selected.lat, lng: selected.lng })}
           >
-            <Text style={[styles.favoriteText, isFavorite && { color: "#fff" }]}>{isFavorite ? "★ Preferito" : "☆ Aggiungi"}</Text>
+            <Icon name={isFavorite ? "check" : "star"} size={16} color={isFavorite ? "#fff" : colors.primary} />
+            <Text style={[styles.favoriteText, isFavorite && { color: "#fff" }]}>{isFavorite ? "Preferito" : "Aggiungi"}</Text>
           </Pressable>
         </View>
       )}
+    </View>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={styles.legendItem}>
+      <View style={[styles.legendDot, { backgroundColor: color }]} />
+      <Text style={styles.legendText}>{label}</Text>
     </View>
   );
 }
@@ -176,20 +194,22 @@ const styles = StyleSheet.create({
   input: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
   go: { paddingHorizontal: 18, borderRadius: 12, backgroundColor: "#15803d", alignItems: "center", justifyContent: "center", elevation: 4 },
   goText: { color: "#fff", fontWeight: "700" },
-  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: "#fff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: "#fff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
   busyChip: { flexDirection: "row", alignItems: "center", gap: 8 },
   chipPrimary: { backgroundColor: "#15803d", borderColor: "#15803d" },
   chipText: { fontWeight: "600", color: "#0f172a" },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
-  emptyEmoji: { fontSize: 56 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" },
   emptyText: { textAlign: "center", color: "#64748b", fontSize: 15, lineHeight: 22 },
-  legend: { position: "absolute", left: 12, bottom: 12, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.92)", elevation: 3 },
+  legend: { position: "absolute", left: 12, bottom: 12, flexDirection: "row", gap: 12, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.92)", elevation: 3 },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
   legendText: { fontSize: 12, color: "#334155" },
   sheet: { position: "absolute", left: 12, right: 12, bottom: 12, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0", elevation: 6 },
   name: { fontWeight: "700", fontSize: 16 },
   muted: { color: "#64748b", fontSize: 12 },
   status: { color: "#15803d", fontSize: 12, marginTop: 2 },
-  favorite: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: "#15803d" },
+  favorite: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: "#15803d" },
   favoriteOn: { backgroundColor: "#15803d" },
   favoriteText: { color: "#15803d", fontWeight: "700" },
 });

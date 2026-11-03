@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { offerKey, type OfferView } from "@salvaspesa/app-core";
+import { Icon } from "../icons";
 import { OfferRow, OfferTile } from "../offer-views";
 import { useVisibleOffers } from "../offers";
 import { useApp } from "../state";
@@ -23,18 +24,19 @@ export default function Offerte() {
     <View style={styles.screen}>
       <View style={styles.toolbar}>
         <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Icon name="search" size={18} color={colors.muted} />
           <TextInput style={styles.search} placeholder="Cerca un prodotto" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} returnKeyType="search" autoCorrect={false} />
           {query ? (
             <Pressable onPress={() => setQuery("")} hitSlop={10}>
-              <Text style={styles.clear}>✕</Text>
+              <Icon name="close" size={18} color={colors.muted} />
             </Pressable>
           ) : null}
         </View>
         <View style={styles.toggle}>
           {(["grid", "list"] as const).map((value) => (
             <Pressable key={value} style={[styles.toggleButton, mode === value && styles.toggleOn]} onPress={() => setMode(value)}>
-              <Text style={[styles.toggleText, mode === value && styles.toggleTextOn]}>{value === "grid" ? "▦ Griglia" : "☰ Lista"}</Text>
+              <Icon name={value} size={15} color={mode === value ? "#fff" : colors.text} />
+              <Text style={[styles.toggleText, mode === value && styles.toggleTextOn]}>{value === "grid" ? "Griglia" : "Lista"}</Text>
             </Pressable>
           ))}
         </View>
@@ -42,7 +44,7 @@ export default function Offerte() {
 
       {loading && offers.length === 0 ? (
         <>
-          <StateMessage busy emoji="" title="Sto scaricando le offerte" text={progress || "Ci vorrà un momento, solo la prima volta."} />
+          <StateMessage busy title="Sto scaricando le offerte" text={progress || "Ci vorrà un momento, solo la prima volta."} />
           <SkeletonTiles count={4} />
         </>
       ) : (
@@ -62,16 +64,16 @@ export default function Offerte() {
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={updating && !loading} onRefresh={() => void refresh(true)} colors={[colors.primary]} />}
           renderItem={renderItem}
-          ListHeaderComponent={updating ? <Text style={styles.updating}>🔄  {progress || "Aggiorno le offerte…"}</Text> : undefined}
+          ListHeaderComponent={updating ? <Text style={styles.updating}>{progress || "Aggiorno le offerte…"}</Text> : undefined}
           ListEmptyComponent={
             favorites.length === 0 ? (
-              <StateMessage emoji="🗺️" title="Scegli i tuoi supermercati" text="Aggiungi i negozi vicino a te per vedere le loro offerte." action={<Button label="Apri la mappa" onPress={() => router.push("/zona")} />} />
+              <StateMessage icon="map" title="Scegli i tuoi supermercati" text="Aggiungi i negozi vicino a te per vedere le loro offerte." action={<Button label="Apri la mappa" onPress={() => router.push("/zona")} />} />
             ) : busy ? (
-              <StateMessage busy emoji="" title="Sto scaricando le offerte" text={progress} />
+              <StateMessage busy title="Sto scaricando le offerte" text={progress} />
             ) : query ? (
-              <StateMessage emoji="🔎" title="Nessun risultato" text={`Non ho trovato offerte per «${query}». Prova con un'altra parola.`} />
+              <StateMessage icon="search" title="Nessun risultato" text={`Non ho trovato offerte per «${query}». Prova con un'altra parola.`} />
             ) : (
-              <StateMessage emoji="🛒" title="Ancora nessuna offerta" text="I volantini dei tuoi supermercati non sono ancora disponibili." action={<Button label="Riprova" onPress={() => void refresh(true)} />} />
+              <StateMessage icon="cart" title="Ancora nessuna offerta" text="I volantini dei tuoi supermercati non sono ancora disponibili." action={<Button label="Riprova" onPress={() => void refresh(true)} />} />
             )
           }
         />
@@ -84,11 +86,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   toolbar: { padding: 14, gap: 10 },
   searchBox: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.card, ...shadow },
-  searchIcon: { fontSize: 15 },
   search: { flex: 1, paddingVertical: 10, fontSize: 15, color: colors.text },
-  clear: { color: colors.muted, fontSize: 16 },
   toggle: { flexDirection: "row", alignSelf: "flex-start", borderRadius: radius.pill, backgroundColor: "#e3ebe6", padding: 3 },
-  toggleButton: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: radius.pill },
+  toggleButton: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 6, borderRadius: radius.pill },
   toggleOn: { backgroundColor: colors.primary },
   toggleText: { color: colors.text, fontWeight: "600", fontSize: 13 },
   toggleTextOn: { color: "#fff" },

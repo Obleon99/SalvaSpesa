@@ -1,7 +1,9 @@
 import { memo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import type { OfferView } from "@salvaspesa/app-core";
-import { chainColor, colors, radius, shadow } from "./theme";
+import { ChainLogo } from "./chain-logo";
+import { Icon } from "./icons";
+import { colors, radius, shadow } from "./theme";
 
 export const euro = (n: number) => `${n.toFixed(2).replace(".", ",")} €`;
 
@@ -12,7 +14,7 @@ function Thumb({ offer, size }: { offer: OfferView; size: number | "fill" }) {
     <Image source={{ uri: offer.imageUrl }} style={[styles.thumb, style]} resizeMode="contain" resizeMethod="resize" fadeDuration={80} />
   ) : (
     <View style={[styles.thumb, styles.noThumb, style]}>
-      <Text style={{ fontSize: 28 }}>🛒</Text>
+      <Icon name="cart" size={26} color="#9db3a6" />
     </View>
   );
 }
@@ -25,12 +27,12 @@ function Discount({ offer }: { offer: OfferView }) {
   ) : null;
 }
 
-function ChainTag({ name }: { name: string }) {
+function ChainTag({ offer }: { offer: OfferView }) {
   return (
     <View style={styles.chain}>
-      <View style={[styles.dot, { backgroundColor: chainColor(name) }]} />
+      <ChainLogo chainId={offer.chainId} name={offer.chainName} size={16} />
       <Text style={styles.chainText} numberOfLines={1}>
-        {name}
+        {offer.chainName}
       </Text>
     </View>
   );
@@ -44,7 +46,7 @@ export const OfferRow = memo(function OfferRow({ offer }: { offer: OfferView }) 
         <Text style={styles.name} numberOfLines={2}>
           {offer.name}
         </Text>
-        <ChainTag name={offer.chainName} />
+        <ChainTag offer={offer} />
         <Text style={styles.muted} numberOfLines={1}>
           {[offer.packageText, offer.requiresLoyaltyCard ? "con carta" : null, offer.unitPrice != null && offer.unit ? `${euro(offer.unitPrice)}/${offer.unit}` : null].filter(Boolean).join(" · ")}
         </Text>
@@ -70,7 +72,7 @@ export const OfferTile = memo(function OfferTile({ offer, width }: { offer: Offe
       <Text style={styles.name} numberOfLines={2}>
         {offer.name}
       </Text>
-      <ChainTag name={offer.chainName} />
+      <ChainTag offer={offer} />
       {offer.packageText ? (
         <Text style={styles.muted} numberOfLines={1}>
           {offer.packageText}
@@ -96,7 +98,6 @@ const styles = StyleSheet.create({
   name: { fontWeight: "600", fontSize: 14, color: colors.text },
   muted: { color: colors.muted, fontSize: 12 },
   chain: { flexDirection: "row", alignItems: "center", gap: 5 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
   chainText: { color: colors.muted, fontSize: 12, fontWeight: "600" },
   price: { fontWeight: "800", fontSize: 18, color: colors.primary },
   old: { color: "#94a3b8", textDecorationLine: "line-through", fontSize: 12 },

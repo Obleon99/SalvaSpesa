@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { GROUPS } from "@salvaspesa/deal-logic";
-import { GROUP_EMOJI } from "../groups";
+import { Icon, type IconName } from "../icons";
 import { Stepper } from "../stepper";
 import { useApp } from "../state";
 import { colors, radius } from "../theme";
@@ -34,7 +34,7 @@ export default function Profilo() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Card style={styles.card}>
-        <Text style={styles.title}>👤  I tuoi dati</Text>
+        <Title icon="user" text="I tuoi dati" />
         <Text style={styles.label}>Nome</Text>
         <TextInput style={styles.input} value={name} onChangeText={setName} onEndEditing={saveName} placeholder="Come ti chiami?" placeholderTextColor={colors.muted} />
 
@@ -47,21 +47,21 @@ export default function Profilo() {
         <TextInput style={styles.input} value={budget} onChangeText={setBudget} onEndEditing={saveBudget} keyboardType="decimal-pad" placeholder="Nessuna soglia" placeholderTextColor={colors.muted} />
 
         <Text style={styles.label}>Posizione</Text>
-        <Text style={styles.value}>📍  {location ? location.label : "Non impostata: cercala in «La mia zona»."}</Text>
+        <Text style={styles.value}>{location ? location.label : "Non impostata: cercala in «La mia zona»."}</Text>
       </Card>
 
       <Card style={styles.card}>
-        <Text style={styles.title}>🍽️  Categorie da mostrare</Text>
+        <Title icon="list" text="Categorie da mostrare" />
         <Text style={styles.muted}>{categories.length === 0 ? "Nessuna selezione: vedi tutte le categorie." : "Vedi solo le categorie scelte."}</Text>
         <View style={styles.chips}>
           {GROUPS.map((group) => (
-            <Chip key={group.id} on={categories.includes(group.id)} onPress={() => toggleCategory(group.id)} label={`${GROUP_EMOJI[group.icon] ?? "🛒"} ${group.label}`} />
+            <Chip key={group.id} on={categories.includes(group.id)} onPress={() => toggleCategory(group.id)} label={group.label} />
           ))}
         </View>
       </Card>
 
       <Card style={styles.card}>
-        <Text style={styles.title}>⭐  Supermercati preferiti</Text>
+        <Title icon="star" text="Supermercati preferiti" />
         <Text style={styles.muted}>{favorites.length === 0 ? "Nessuno: sceglili in «La mia zona»." : favoriteSummary(favorites)}</Text>
       </Card>
 
@@ -72,11 +72,21 @@ export default function Profilo() {
   );
 }
 
+function Title({ icon, text }: { icon: IconName; text: string }) {
+  return (
+    <View style={styles.titleRow}>
+      <Icon name={icon} size={18} color={colors.primary} />
+      <Text style={styles.title}>{text}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 14, gap: 14, paddingBottom: 28 },
   card: { gap: 4 },
-  title: { fontWeight: "800", fontSize: 16, marginBottom: 4, color: colors.text },
+  title: { fontWeight: "800", fontSize: 16, color: colors.text },
   label: { color: colors.muted, fontSize: 12, fontWeight: "700", marginTop: 12, marginBottom: 4, textTransform: "uppercase" },
   value: { fontSize: 15, color: colors.text },
   muted: { color: colors.muted },

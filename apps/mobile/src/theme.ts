@@ -21,16 +21,14 @@ export const shadow: ViewStyle =
     ? { elevation: 2 }
     : { shadowColor: "#0f172a", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } };
 
-// Colore di riconoscimento di ogni insegna, usato nelle etichette dei prodotti.
-export const CHAIN_COLORS: Record<string, string> = {
-  Lidl: "#0050aa",
-  Penny: "#cd1719",
-  Eurospin: "#e30613",
-  Esselunga: "#d71920",
-  Tigros: "#e2001a",
-  Ekom: "#f59e0b",
-  Aldi: "#00549f",
-  Conad: "#e30613",
-  Coop: "#e2001a",
+// Insegne senza logo ufficiale a risoluzione sufficiente: badge con il nome sul colore di marca.
+export const BRAND_BADGES: Record<string, { color: string; text: string; label: string }> = {
+  tigros: { color: "#d4141c", text: "#ffffff", label: "tigros" },
+  ekom: { color: "#ffd100", text: "#1b1b1b", label: "ekom" },
+  basko: { color: "#d9261c", text: "#ffffff", label: "basko" },
+  iper: { color: "#e4002b", text: "#ffffff", label: "iper" },
+  tosano: { color: "#005baa", text: "#ffffff", label: "tosano" },
+  ins: { color: "#0072bc", text: "#ffffff", label: "iN's" },
+  dok: { color: "#e30613", text: "#ffffff", label: "dok" },
+  sigma: { color: "#00833e", text: "#ffffff", label: "sigma" },
 };
-export const chainColor = (name: string) => CHAIN_COLORS[name] ?? colors.primary;

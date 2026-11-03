@@ -1,15 +1,16 @@
 import "../polyfills";
 import { Tabs } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { Icon, type IconName } from "../icons";
 import { Onboarding } from "../onboarding";
 import { AppProvider, useApp } from "../state";
 import { colors } from "../theme";
 
-const tabIcon = (emoji: string) =>
-  function TabIcon({ focused }: { focused: boolean }) {
-    return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>{emoji}</Text>;
+const tabIcon = (name: IconName) =>
+  function TabIcon({ color, focused }: { color: unknown; focused: boolean }) {
+    return <Icon name={name} size={23} color={String(color)} strokeWidth={focused ? 2.3 : 1.8} />;
   };
 
 // Al primo avvio la guida copre le tab; il navigatore resta montato sotto.
@@ -32,10 +33,10 @@ function Shell() {
           headerTitleStyle: { fontWeight: "800" },
         }}
       >
-        <Tabs.Screen name="index" options={{ title: "Home", headerShown: false, tabBarIcon: tabIcon("🏠") }} />
-        <Tabs.Screen name="offerte" options={{ title: "Offerte", tabBarIcon: tabIcon("🏷️") }} />
-        <Tabs.Screen name="zona" options={{ title: "La mia zona", tabBarIcon: tabIcon("📍") }} />
-        <Tabs.Screen name="profilo" options={{ title: "Profilo", tabBarIcon: tabIcon("👤") }} />
+        <Tabs.Screen name="index" options={{ title: "Home", headerShown: false, tabBarIcon: tabIcon("home") }} />
+        <Tabs.Screen name="offerte" options={{ title: "Offerte", tabBarIcon: tabIcon("tag") }} />
+        <Tabs.Screen name="zona" options={{ title: "La mia zona", tabBarIcon: tabIcon("pin") }} />
+        <Tabs.Screen name="profilo" options={{ title: "Profilo", tabBarIcon: tabIcon("user") }} />
       </Tabs>
       {!ready ? <View style={styles.cover} /> : !onboarded ? <View style={styles.cover}><Onboarding /></View> : null}
     </>

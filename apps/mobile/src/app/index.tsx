@@ -3,6 +3,7 @@ import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-n
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { offerKey } from "@salvaspesa/app-core";
+import { Icon, type IconName } from "../icons";
 import { OfferTile, euro } from "../offer-views";
 import { useVisibleOffers } from "../offers";
 import { useApp } from "../state";
@@ -41,22 +42,23 @@ export default function Home() {
         <Text style={styles.heroTitle}>{greeting(profile.name)}</Text>
         <Text style={styles.heroText}>Le offerte dei tuoi supermercati, scaricate direttamente sul telefono.</Text>
         <View style={styles.pill}>
+          <Icon name={busy ? "refresh" : "checkCircle"} size={14} color="#fff" />
           <Text style={styles.pillText} numberOfLines={1}>
-            {busy ? `🔄  ${progress || "Preparo le offerte…"}` : data?.generatedAt ? `✅  Aggiornate alle ${time(data.generatedAt)}` : "Nessun aggiornamento ancora"}
+            {busy ? progress || "Preparo le offerte…" : data?.generatedAt ? `Aggiornate alle ${time(data.generatedAt)}` : "Nessun aggiornamento ancora"}
           </Text>
         </View>
       </View>
 
       <View style={styles.stats}>
-        <Stat emoji="🏷️" value={String(offers.length)} label="offerte" />
-        <Stat emoji="🏪" value={String(chains)} label="insegne" />
-        <Stat emoji="⭐" value={String(favorites.length)} label="preferiti" />
+        <Stat icon="tag" value={String(offers.length)} label="offerte" />
+        <Stat icon="store" value={String(chains)} label="insegne" />
+        <Stat icon="star" value={String(favorites.length)} label="preferiti" />
       </View>
 
       <Card style={styles.info}>
-        <Text style={styles.infoLine}>📍  {location ? location.label : "Posizione non impostata"}</Text>
-        <Text style={styles.infoLine}>👨‍👩‍👧  {people === 1 ? "1 persona" : `${people} persone`} in famiglia</Text>
-        <Text style={styles.infoLine}>💶  {profile.weeklyBudget != null ? `Soglia settimanale ${euro(profile.weeklyBudget)}` : "Nessuna soglia di spesa impostata"}</Text>
+        <InfoLine icon="pin" text={location ? location.label : "Posizione non impostata"} />
+        <InfoLine icon="users" text={`${people === 1 ? "1 persona" : `${people} persone`} in famiglia`} />
+        <InfoLine icon="wallet" text={profile.weeklyBudget != null ? `Soglia settimanale ${euro(profile.weeklyBudget)}` : "Nessuna soglia di spesa impostata"} />
       </Card>
 
       <View style={styles.sectionRow}>
@@ -82,19 +84,19 @@ export default function Home() {
         />
       ) : busy ? (
         <>
-          <StateMessage busy emoji="" title="Sto scaricando le offerte" text={progress ? `${progress}\nCi vorrà un momento, solo la prima volta.` : "Ci vorrà un momento, solo la prima volta."} />
+          <StateMessage busy title="Sto scaricando le offerte" text={progress ? `${progress}\nCi vorrà un momento, solo la prima volta.` : "Ci vorrà un momento, solo la prima volta."} />
           <SkeletonTiles count={2} />
         </>
       ) : favorites.length === 0 ? (
         <StateMessage
-          emoji="🗺️"
+          icon="map"
           title="Scegli i tuoi supermercati"
           text="Aggiungi i negozi vicino a te e qui vedrai le offerte migliori."
           action={<Button label="Apri la mappa" onPress={() => router.push("/zona")} />}
         />
       ) : (
         <StateMessage
-          emoji="🛒"
+          icon="cart"
           title="Ancora nessuna offerta"
           text={problems.length > 0 ? problems.join("\n") : "I volantini dei tuoi supermercati non sono ancora disponibili."}
           action={<Button label="Riprova" onPress={() => void refresh(true)} />}
@@ -104,10 +106,21 @@ export default function Home() {
   );
 }
 
-function Stat({ emoji, value, label }: { emoji: string; value: string; label: string }) {
+function InfoLine({ icon, text }: { icon: IconName; text: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Icon name={icon} size={16} color={colors.muted} />
+      <Text style={styles.infoLine} numberOfLines={1}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+function Stat({ icon, value, label }: { icon: IconName; value: string; label: string }) {
   return (
     <View style={styles.stat}>
-      <Text style={styles.statEmoji}>{emoji}</Text>
+      <Icon name={icon} size={18} color={colors.primary} />
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -119,15 +132,15 @@ const styles = StyleSheet.create({
   hero: { backgroundColor: colors.primary, paddingHorizontal: 20, paddingBottom: 56, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, gap: 6 },
   heroTitle: { color: "#fff", fontSize: 26, fontWeight: "800" },
   heroText: { color: "#d1fae5", fontSize: 14, lineHeight: 20 },
-  pill: { alignSelf: "flex-start", marginTop: 10, maxWidth: "100%", backgroundColor: "rgba(255,255,255,0.18)", borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6 },
+  pill: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: 10, maxWidth: "100%", backgroundColor: "rgba(255,255,255,0.18)", borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6 },
   pillText: { color: "#fff", fontSize: 12, fontWeight: "600" },
   stats: { flexDirection: "row", gap: 10, paddingHorizontal: 14, marginTop: -34 },
   stat: { flex: 1, alignItems: "center", paddingVertical: 12, borderRadius: radius.md, backgroundColor: colors.card, ...shadow },
-  statEmoji: { fontSize: 18 },
   statValue: { fontSize: 22, fontWeight: "800", color: colors.primary },
   statLabel: { color: colors.muted, fontSize: 12 },
   info: { marginHorizontal: 14, marginTop: 14, gap: 6 },
-  infoLine: { fontSize: 14, color: "#334155" },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  infoLine: { flex: 1, fontSize: 14, color: "#334155" },
   sectionRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginHorizontal: 18, marginTop: 22, marginBottom: 6 },
   section: { fontWeight: "800", fontSize: 18, color: colors.text },
   link: { color: colors.primary, fontWeight: "700" },

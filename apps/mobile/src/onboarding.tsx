@@ -2,16 +2,16 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GROUPS } from "@salvaspesa/deal-logic";
-import { GROUP_EMOJI } from "./groups";
+import { Icon, type IconName } from "./icons";
 import { Stepper } from "./stepper";
 import { useApp, type Profile } from "./state";
 import { colors } from "./theme";
 
-const SLIDES = [
-  { emoji: "🛒", title: "Benvenuto in SpesaChiara", text: "Confronta le offerte dei supermercati vicino a te e scopri dove conviene davvero fare la spesa." },
-  { emoji: "📍", title: "Scegli i tuoi supermercati", text: "In «La mia zona» trovi i negozi intorno a te: tocca la stella per aggiungerli ai preferiti. Le offerte vengono scaricate dai volantini." },
-  { emoji: "🏷️", title: "Trova le occasioni", text: "In «Offerte» vedi prodotti e prezzi in griglia o in lista, ordinati per sconto. Nella Home trovi le migliori del momento." },
-  { emoji: "🔒", title: "I tuoi dati restano con te", text: "Non c'è nessun server né account: profilo, preferiti e offerte sono salvati solo su questo telefono." },
+const SLIDES: { icon: IconName; title: string; text: string }[] = [
+  { icon: "cart", title: "Benvenuto in SpesaChiara", text: "Confronta le offerte dei supermercati vicino a te e scopri dove conviene davvero fare la spesa." },
+  { icon: "pin", title: "Scegli i tuoi supermercati", text: "In «La mia zona» trovi i negozi intorno a te: tocca la stella per aggiungerli ai preferiti. Le offerte vengono scaricate dai volantini." },
+  { icon: "tag", title: "Trova le occasioni", text: "In «Offerte» vedi prodotti e prezzi in griglia o in lista, ordinati per sconto. Nella Home trovi le migliori del momento." },
+  { icon: "shield", title: "I tuoi dati restano con te", text: "Non c'è nessun server né account: profilo, preferiti e offerte sono salvati solo su questo telefono." },
 ];
 
 export function Onboarding() {
@@ -41,7 +41,9 @@ export function Onboarding() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {!onProfileStep ? (
           <View style={styles.slide}>
-            <Text style={styles.emoji}>{SLIDES[step].emoji}</Text>
+            <View style={styles.iconCircle}>
+              <Icon name={SLIDES[step].icon} size={56} color={colors.primary} strokeWidth={1.6} />
+            </View>
             <Text style={styles.title}>{SLIDES[step].title}</Text>
             <Text style={styles.text}>{SLIDES[step].text}</Text>
           </View>
@@ -69,7 +71,7 @@ export function Onboarding() {
                 const on = categories.includes(group.id);
                 return (
                   <Pressable key={group.id} style={[styles.chip, on && styles.chipOn]} onPress={() => toggle(group.id)}>
-                    <Text style={on ? styles.chipTextOn : undefined}>{`${GROUP_EMOJI[group.icon] ?? "🛒"} ${group.label}`}</Text>
+                    <Text style={on ? styles.chipTextOn : undefined}>{group.label}</Text>
                   </Pressable>
                 );
               })}
@@ -107,7 +109,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { flexGrow: 1, padding: 24, justifyContent: "center" },
   slide: { alignItems: "center", gap: 12 },
-  emoji: { fontSize: 72, textAlign: "center", width: 140, height: 140, lineHeight: 140, borderRadius: 70, backgroundColor: colors.primarySoft, overflow: "hidden" },
+  iconCircle: { width: 128, height: 128, borderRadius: 64, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center", marginBottom: 8 },
   title: { fontSize: 24, fontWeight: "800", textAlign: "center", color: "#0f172a" },
   text: { fontSize: 16, color: "#475569", textAlign: "center", lineHeight: 23, marginTop: 4 },
   label: { color: "#475569", fontSize: 12, fontWeight: "600", marginTop: 16, marginBottom: 4, textTransform: "uppercase" },
