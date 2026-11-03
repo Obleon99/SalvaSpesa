@@ -15,6 +15,13 @@ function greeting(name: string): string {
   return name ? `${hello}, ${name}!` : `${hello}!`;
 }
 
+// Messaggi tecnici dei volantini tradotti in frasi comprensibili.
+function friendly(note: string): string {
+  if (/pdf/i.test(note)) return "il volantino è in PDF e la lettura sul telefono arriverà in un prossimo aggiornamento.";
+  if (/abort|timeout|network|fetch|HTTP/i.test(note)) return "sito non raggiungibile in questo momento, riprova più tardi.";
+  return note;
+}
+
 const time = (iso: string) => new Date(iso).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
 export default function Home() {
@@ -26,7 +33,7 @@ export default function Home() {
   const people = profile.adults + profile.children;
   const busy = loading || updating;
   // Motivi per cui un supermercato non ha dato offerte, mostrati solo quando serve capire cosa è andato storto.
-  const problems = useMemo(() => [...new Set((data?.sources ?? []).filter((s) => s.status !== "ok" && s.note).map((s) => `${s.chainName}: ${s.note}`))].slice(0, 4), [data]);
+  const problems = useMemo(() => [...new Set((data?.sources ?? []).filter((s) => s.status !== "ok" && s.note).map((s) => `${s.chainName}: ${friendly(s.note ?? "")}`))].slice(0, 4), [data]);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>

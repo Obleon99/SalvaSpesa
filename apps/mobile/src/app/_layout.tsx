@@ -18,7 +18,8 @@ function Shell() {
   const insets = useSafeAreaInsets();
   return (
     <>
-      <StatusBar style="light" />
+      {/* Icone chiare sulla fascia verde; scure mentre la guida (sfondo chiaro) copre lo schermo. */}
+      <StatusBar style={!ready || !onboarded ? "dark" : "light"} />
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: colors.primary,
