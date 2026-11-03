@@ -38,6 +38,9 @@ export function useVisibleOffers(query = ""): OfferView[] {
   return useMemo(() => {
     const term = normalizeText(deferred);
     const all = categories.length === 0 && !term;
-    return prepared.filter((p) => all || ((categories.length === 0 || categories.includes(p.group)) && (!term || p.text.includes(term)))).map((p) => p.offer);
+    const wantsPet = term ? classifyProduct({ name: term }).group === "animali" : false;
+    return prepared
+      .filter((p) => (p.group !== "animali" || wantsPet) && (all || ((categories.length === 0 || categories.includes(p.group)) && (!term || p.text.includes(term)))))
+      .map((p) => p.offer);
   }, [prepared, categories, deferred]);
 }

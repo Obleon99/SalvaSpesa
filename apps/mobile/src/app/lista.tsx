@@ -1,6 +1,6 @@
 import { memo, useDeferredValue, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { normalizeText } from "@salvaspesa/deal-logic";
+import { classifyProduct, normalizeText } from "@salvaspesa/deal-logic";
 import { ChainLogo } from "../chain-logo";
 import { Icon } from "../icons";
 import { itemFromOffer, itemFromText, itemTotal, listTotal, useListMatches, type ListItem } from "../list";
@@ -25,9 +25,10 @@ export default function Lista() {
     const term = normalizeText(deferred);
     if (term.length < 2) return [];
     const words = term.split(/\s+/);
+    const wantsPet = classifyProduct({ name: deferred }).group === "animali";
     const found = [];
     for (const p of prepared) {
-      if (words.every((w) => p.text.includes(w))) {
+      if ((wantsPet || p.group !== "animali") && words.every((w) => p.text.includes(w))) {
         found.push(p.offer);
         if (found.length >= 40) break;
       }

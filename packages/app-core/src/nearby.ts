@@ -38,15 +38,23 @@ export async function fetchNearbyStores(lat: number, lng: number, radiusKm: numb
   const roundedLng = Math.round(lng * 1000) / 1000;
   const around = `(around:${Math.round(radius * 1000)},${roundedLat},${roundedLng})`;
   const matches = ["name", "brand", "operator"].map((tag) => `nwr["shop"="supermarket"]["${tag}"~"${KNOWN_CHAINS}",i]${around};`).join("");
-  const query = `[out:json][timeout:50];(${matches});out center tags 400;`;
+  const query = `[out:json][timeout:25];(${matches});out center tags 400;`;
   const attempts = OVERPASS_ENDPOINTS.map(async (endpoint) => {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": USER_AGENT },
-      body: `data=${encodeURIComponent(query)}`,
-    });
-    if (!response.ok) throw new Error(`Overpass ${response.status}`);
-    return ((await response.json()) as { elements?: OverpassElement[] }).elements ?? [];
+    // Un server lento non deve far aspettare minuti: dopo 15 secondi si rinuncia a quello e vince un altro.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": USER_AGENT },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`Overpass ${response.status}`);
+      return ((await response.json()) as { elements?: OverpassElement[] }).elements ?? [];
+    } finally {
+      clearTimeout(timer);
+    }
   });
   const elements = await Promise.any(attempts);
   // Il filtro del server è largo (nomi brevi come "md" o "pam"): quello preciso è riconoscere l'insegna.

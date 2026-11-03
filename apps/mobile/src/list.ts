@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { normalizeText } from "@salvaspesa/deal-logic";
+import { classifyProduct, normalizeText } from "@salvaspesa/deal-logic";
 import { offerKey, type OfferView } from "@salvaspesa/app-core";
 import { usePrepared } from "./offers";
 import { useApp } from "./state";
@@ -66,8 +66,10 @@ export function useListMatches(): { matches: Match[]; plan: ChainPlan[] } {
     const matches: Match[] = open.map((item) => {
       const tokens = tokensOf(item.name);
       if (tokens.length === 0) return { item, offers: [] };
+      // Il cibo per animali compare solo se è proprio ciò che si cerca ("pollo" non deve portare alle crocchette).
+      const wantsPet = classifyProduct({ name: item.name }).group === "animali";
       const found: OfferView[] = [];
-      for (const p of prepared) if (tokens.every((token) => p.text.includes(token))) found.push(p.offer);
+      for (const p of prepared) if ((wantsPet || p.group !== "animali") && tokens.every((token) => p.text.includes(token))) found.push(p.offer);
       found.sort((a, b) => (a.unitPrice ?? a.price) - (b.unitPrice ?? b.price));
       return { item, offers: found.slice(0, MATCHES_PER_ITEM) };
     });

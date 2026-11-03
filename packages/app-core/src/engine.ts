@@ -1,3 +1,4 @@
+import { detectMultibuy } from "@salvaspesa/deal-logic";
 import { adapters, scraperConfig, sha1Hex } from "@salvaspesa/scraper-core";
 import type { ScrapedOffer } from "@salvaspesa/shared-types";
 import type { FavoriteRef, OfferView, OffersResponse, SourceInfo } from "./offers-types";
@@ -267,7 +268,7 @@ async function loadChain(chainId: string, favorites: FavoriteRef[], storage: Sna
     result.times.push(checked as string);
     const storeIds = group.map((f) => f.id);
     for (const offer of snapshot.offers) {
-      if (Date.parse(offer.validTo) >= now) result.offers.push({ ...offer, chainName, storeIds });
+      if (Date.parse(offer.validTo) >= now) result.offers.push({ ...offer, promoLabel: detectMultibuy(offer.promoLabel, offer.name, offer.description, offer.packageText), chainName, storeIds });
     }
   }
   return result;

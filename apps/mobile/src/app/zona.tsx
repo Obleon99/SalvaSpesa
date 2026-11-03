@@ -13,6 +13,23 @@ const MOVED_KM = 0.4;
 // Si mostrano solo i negozi più vicini: centinaia di segnaposto rallentano i telefoni meno recenti e non servono.
 const MAX_STORES = 150;
 
+// Attende al massimo `ms` millisecondi: se la risposta non arriva restituisce null invece di restare in attesa per minuti.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      },
+    );
+  });
+}
+
 export default function Zona() {
   const { favorites, toggleFavorite, data, setLocation } = useApp();
   const [stores, setStores] = useState<StoreWithDistance[]>([]);
@@ -67,14 +84,19 @@ export default function Zona() {
         Alert.alert("Posizione negata", "Serve il permesso per trovare i supermercati vicini. Puoi comunque cercare un indirizzo.");
         return;
       }
+      // Posizione in pochi secondi: prima l'ultima nota (se recente), poi una lettura a bassa precisione con limite di tempo.
       const position =
-        (await Location.getLastKnownPositionAsync()) ??
-        (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null));
+        (await Location.getLastKnownPositionAsync({ maxAge: 10 * 60 * 1000, requiredAccuracy: 2000 }).catch(() => null)) ??
+        (await withTimeout(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }), 8000)) ??
+        (await Location.getLastKnownPositionAsync().catch(() => null));
       if (!position) throw new Error("Posizione non disponibile: attiva la localizzazione del telefono oppure cerca un indirizzo.");
       const here = { lat: position.coords.latitude, lng: position.coords.longitude };
-      const place = await Location.reverseGeocodeAsync({ latitude: here.lat, longitude: here.lng }).catch(() => []);
-      const label = [place[0]?.city ?? place[0]?.subregion, place[0]?.region].filter(Boolean).join(", ");
-      setLocation({ ...here, label: label || `${here.lat.toFixed(3)}, ${here.lng.toFixed(3)}` });
+      // Il nome del luogo non blocca la ricerca dei supermercati: arriva dopo, se il telefono riesce a darlo.
+      setLocation({ ...here, label: `${here.lat.toFixed(3)}, ${here.lng.toFixed(3)}` });
+      void withTimeout(Location.reverseGeocodeAsync({ latitude: here.lat, longitude: here.lng }), 4000).then((place) => {
+        const label = place ? [place[0]?.city ?? place[0]?.subregion, place[0]?.region].filter(Boolean).join(", ") : "";
+        if (label) setLocation({ ...here, label });
+      });
       await loadAround(here, ticket);
     }, "Cerco la tua posizione…");
 

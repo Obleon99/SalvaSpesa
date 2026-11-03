@@ -126,6 +126,7 @@ export const esselungaAdapter: ChainAdapter = {
               originalPrice: regular,
               discountPercent: Number.isFinite(percent) && percent > 0 ? percent : discountPercent(promoPrice, regular),
               requiresLoyaltyCard: /f[iì]daty|carta/i.test(mechanic),
+              promoLabel: mechanic || null,
               packageText: null,
               unitPrice: unit?.unitPrice ?? null,
               unit: unit?.unit ?? null,

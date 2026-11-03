@@ -5,7 +5,7 @@ import { flyerUrl, type OfferView } from "@salvaspesa/app-core";
 import { ChainLogo } from "./chain-logo";
 import { Icon } from "./icons";
 import { itemFromOffer } from "./list";
-import { euro } from "./offer-views";
+import { euro, promoExplain } from "./offer-views";
 import { useApp } from "./state";
 import { colors, radius } from "./theme";
 
@@ -72,6 +72,7 @@ export function OfferSheet() {
             </View>
 
             <View style={styles.facts}>
+              {offer.promoLabel ? <Fact label="Promozione" value={promoExplain(offer.promoLabel)} /> : null}
               {offer.packageText ? <Fact label="Confezione" value={offer.packageText} /> : null}
               {offer.unitPrice != null && offer.unit ? <Fact label={`Prezzo al ${unitName(offer.unit)}`} value={euro(offer.unitPrice)} /> : null}
               <Fact label="Valida" value={`${day(offer.validFrom)} – ${day(offer.validTo)}`} />

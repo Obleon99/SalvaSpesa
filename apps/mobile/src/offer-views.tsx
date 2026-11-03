@@ -20,12 +20,31 @@ function Thumb({ offer, size }: { offer: OfferView; size: number | "fill" }) {
   );
 }
 
+// Spiegazione in chiaro di un'etichetta come "3x2": serve nella scheda del prodotto.
+export function promoExplain(label: string): string {
+  const m = label.match(/^(\d)x(\d)$/);
+  if (m) return `Prendi ${m[1]}, paghi ${m[2]}`;
+  const plus = label.match(/^(\d)\+(\d)$/);
+  if (plus) return `Prendi ${plus[1]}, ${plus[2]} in omaggio`;
+  return label;
+}
+
 function Discount({ offer }: { offer: OfferView }) {
-  return offer.discountPercent != null ? (
-    <View style={styles.badge}>
-      <Text style={styles.badgeText}>{`-${Math.round(offer.discountPercent)}%`}</Text>
+  if (offer.discountPercent == null && !offer.promoLabel) return null;
+  return (
+    <View style={{ alignItems: "flex-start", gap: 3 }}>
+      {offer.promoLabel ? (
+        <View style={styles.promo}>
+          <Text style={styles.badgeText}>{offer.promoLabel}</Text>
+        </View>
+      ) : null}
+      {offer.discountPercent != null ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{`-${Math.round(offer.discountPercent)}%`}</Text>
+        </View>
+      ) : null}
     </View>
-  ) : null;
+  );
 }
 
 function ChainTag({ offer }: { offer: OfferView }) {
@@ -103,5 +122,6 @@ const styles = StyleSheet.create({
   price: { fontWeight: "800", fontSize: 18, color: colors.primary },
   old: { color: "#94a3b8", textDecorationLine: "line-through", fontSize: 12 },
   badge: { backgroundColor: colors.danger, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
+  promo: { backgroundColor: "#d97706", borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
   badgeText: { color: "#fff", fontWeight: "800", fontSize: 12 },
 });
