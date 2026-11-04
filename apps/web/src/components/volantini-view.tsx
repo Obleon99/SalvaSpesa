@@ -181,7 +181,7 @@ export function VolantiniView() {
 
       {problems.length > 0 && offersStatus !== "loading" ? (
         <ul className="flex flex-col gap-1">
-          {[...new Set(problems.map((p) => `${p.chainName}: ${p.note ?? (p.status === "unsupported" ? "il volantino non è ancora disponibile in SpesaChiara" : "non sono riuscito a leggere le offerte")}`))].map((text) => (
+          {[...new Set(problems.map((p) => `${p.chainName}: ${p.note ?? (p.status === "unsupported" ? "il volantino non è ancora disponibile in SalvaSpesa" : "non sono riuscito a leggere le offerte")}`))].map((text) => (
             <li key={text} className="flex items-start gap-1.5 font-label-unit text-label-unit text-on-surface-variant">
               <Icon name="info" className="text-sm text-secondary shrink-0 mt-px" /> {text}
             </li>

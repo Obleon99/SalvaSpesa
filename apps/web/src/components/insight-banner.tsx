@@ -27,7 +27,7 @@ export function InsightBanner({ groups, summary, cartSavings, cartItems, onDownl
         <div className="lg:col-span-8 flex flex-col gap-space-xs">
           <div className="inline-flex items-center gap-space-xs px-space-sm py-1 rounded-full bg-surface-container-lowest text-primary font-label-caps text-label-caps uppercase tracking-wider w-fit shadow-sm">
             <Icon name="psychology_alt" className="text-sm text-primary" />
-            <span>Analisi SpesaChiara • sui tuoi supermercati</span>
+            <span>Analisi SalvaSpesa • sui tuoi supermercati</span>
           </div>
           {summary.averageSavingsPercent !== null && summary.best ? (
             <>

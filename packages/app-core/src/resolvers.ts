@@ -1,7 +1,7 @@
 import { haversineKm } from "./geo";
 import type { FavoriteRef } from "./offers-types";
 
-const USER_AGENT = "Mozilla/5.0 (compatible; SpesaChiaraBot/0.1; progetto personale di confronto prezzi)";
+const USER_AGENT = "Mozilla/5.0 (compatible; SalvaSpesaBot/0.1; progetto personale di confronto prezzi)";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_STORE_DISTANCE_KM = 1;
 

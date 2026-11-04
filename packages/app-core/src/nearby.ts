@@ -10,7 +10,7 @@ const OVERPASS_ENDPOINTS = [
 // Ultime ricerche in memoria: tornare sulla stessa zona non rifà la richiesta.
 const CACHE_MS = 30 * 60 * 1000;
 const cache = new Map<string, { at: number; stores: RawStore[] }>();
-const USER_AGENT = "SpesaChiara/0.1 (progetto personale di confronto volantini)";
+const USER_AGENT = "SalvaSpesa/0.1 (progetto personale di confronto volantini)";
 export const MAX_RADIUS_KM = 25;
 // Solo insegne di supermercati note: negozietti e attività con tag "supermarket" generici non servono al confronto dei volantini.
 const KNOWN_CHAINS = "esselunga|conad|coop|lidl|eurospin|carrefour|pam|panorama|penny|aldi|md|despar|eurospar|interspar|famila|superstore|bennet|tigros|ekom|gulliver|tosano|iper|todis|crai|dok|sigma|simply|gigante|basko|natura";

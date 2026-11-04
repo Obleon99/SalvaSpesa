@@ -60,7 +60,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState("");
   const busy = useRef(false);
   const again = useRef(false);
-  const latest = useRef<(force?: boolean, cacheOnly?: boolean) => Promise<void>>(async () => undefined);
+  const latest = useRef<(force?: boolean, cacheOnly?: boolean, background?: boolean) => Promise<void>>(async () => undefined);
   const previous = useRef<FavoriteRef[]>([]);
 
   useEffect(() => {
@@ -84,20 +84,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refresh = useCallback(
-    async (force = false, cacheOnly = false) => {
+    async (force = false, cacheOnly = false, background = false) => {
       // Se un aggiornamento è già in corso se ne accoda uno solo per dopo, così nessuna modifica va persa.
       if (busy.current) {
         again.current = true;
         return;
       }
       busy.current = true;
-      setUpdating(!cacheOnly);
+      // In secondo piano non si mostra nulla: l'app resta quella di prima finché i dati nuovi sono pronti.
+      setUpdating(!cacheOnly && !background);
       try {
         // Prima si mostra subito quello che è già sul telefono; la schermata di caricamento resta solo se non c'è nulla.
         const cached = await loadOffers(persisted.favorites, snapshotStorage, { cacheOnly: true });
         if (cached.offers.length > 0 || cacheOnly) setData(cached);
         else setLoading(true);
-        if (!cacheOnly) setData(await loadOffers(persisted.favorites, snapshotStorage, { force, onProgress: setProgress }));
+        if (!cacheOnly) {
+          const fresh = await loadOffers(persisted.favorites, snapshotStorage, { force, background, onProgress: background ? undefined : setProgress });
+          // Un respiro prima di consegnare i dati nuovi alle schermate.
+          if (background) await new Promise<void>((resolve) => setTimeout(resolve, 50));
+          setData(fresh);
+        }
       } finally {
         setUpdating(false);
         busy.current = false;
@@ -105,7 +111,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setProgress("");
         if (again.current) {
           again.current = false;
-          setTimeout(() => void latest.current(), 300);
+          setTimeout(() => void latest.current(false, false, true), 2000);
         }
       }
     },
@@ -120,7 +126,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const before = previous.current;
     previous.current = persisted.favorites;
     const onlyRemoved = before.length > 0 && persisted.favorites.every((f) => before.some((p) => p.id === f.id));
-    const timer = setTimeout(() => void refresh(false, onlyRemoved), onlyRemoved ? 0 : 900);
+    // Aggiungere un preferito non scarica subito: si aspetta che l'utente smetta di toccare lo schermo e si lavora in silenzio.
+    // Al primo avvio dell'app (nessun dato ancora) si parte invece senza attese.
+    const first = before.length === 0 && !data;
+    const timer = setTimeout(
+      () => {
+        void refresh(false, onlyRemoved, !first);
+      },
+      onlyRemoved ? 0 : first ? 900 : 4000,
+    );
     return () => clearTimeout(timer);
   }, [ready, refresh, persisted.favorites]);
 

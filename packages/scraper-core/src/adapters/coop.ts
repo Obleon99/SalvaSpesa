@@ -31,7 +31,7 @@ const configuredStores = () => scraperConfig.coopStores.filter((s) => /^\d{6,16}
 async function defaultStore(): Promise<string | null> {
   const response = await fetch(`${SITE}/public/ajax/get.maps.php`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0 (compatible; SpesaChiaraBot/0.1; progetto personale di confronto prezzi)" },
+    headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0 (compatible; SalvaSpesaBot/0.1; progetto personale di confronto prezzi)" },
     body: JSON.stringify({ id_canale: "15", id_subcanale: "16", tipo: "punti_vendita", lat: 44.4056, lng: 8.9463, allowed: 1, uri: `/${CHANNEL_PAGE}.html`, landing: CHANNEL_PAGE }),
     signal: AbortSignal.timeout(30000),
   });

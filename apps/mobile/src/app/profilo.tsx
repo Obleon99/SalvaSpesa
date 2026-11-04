@@ -68,6 +68,7 @@ export default function Profilo() {
       <View style={{ alignItems: "center", marginTop: 6 }}>
         <Button label="Rivedi la guida" kind="ghost" onPress={restartOnboarding} />
       </View>
+      <Text style={styles.signature}>SalvaSpesa · creata da Obleon</Text>
     </ScrollView>
   );
 }
@@ -83,6 +84,7 @@ function Title({ icon, text }: { icon: IconName; text: string }) {
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  signature: { textAlign: "center", color: colors.muted, fontSize: 12, marginTop: 4 },
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 14, gap: 14, paddingBottom: 28 },
   card: { gap: 4 },

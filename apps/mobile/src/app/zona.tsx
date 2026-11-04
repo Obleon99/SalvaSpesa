@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Location from "expo-location";
 import { fetchNearbyStores, formatDistance, geocodeAddress, haversineKm, type LatLng, type StoreWithDistance } from "@salvaspesa/app-core";
 import { Icon } from "../icons";
 import { StoresMap } from "../stores-map";
 import { useApp } from "../state";
+import { readText, writeText } from "../storage";
 import { colors } from "../theme";
 
 const RADIUS_KM = 8;
@@ -30,8 +31,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   });
 }
 
+const NEARBY_KEY = "nearby";
+const NEARBY_FRESH_MS = 24 * 60 * 60 * 1000;
+
 export default function Zona() {
-  const { favorites, toggleFavorite, data, setLocation } = useApp();
+  const { favorites, toggleFavorite, data, setLocation, location, ready } = useApp();
   const [stores, setStores] = useState<StoreWithDistance[]>([]);
   const [searchCenter, setSearchCenter] = useState<LatLng | null>(null);
   const [mapCenter, setMapCenter] = useState<LatLng | null>(null);
@@ -64,7 +68,31 @@ export default function Zona() {
     setSearchCenter(point);
     setMapCenter(point);
     setStores(nearest);
+    void writeText(NEARBY_KEY, JSON.stringify({ at: Date.now(), point, stores: nearest }));
   }
+
+  // All'apertura si riparte dall'ultima posizione salvata: la mappa compare subito con i supermercati già trovati,
+  // e se i dati sono vecchi si aggiornano in silenzio.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (!ready || restored.current || !location) return;
+    restored.current = true;
+    const point = { lat: location.lat, lng: location.lng };
+    void readText(NEARBY_KEY).then((raw) => {
+      let saved: { at: number; point: LatLng; stores: StoreWithDistance[] } | null = null;
+      try {
+        saved = raw ? JSON.parse(raw) : null;
+      } catch {}
+      if (saved && haversineKm(saved.point, point) < 1 && saved.stores.length > 0) {
+        setSearchCenter(saved.point);
+        setMapCenter(saved.point);
+        setStores(saved.stores);
+        if (Date.now() - saved.at < NEARBY_FRESH_MS) return;
+      } else setSearchCenter(point);
+      const ticket = ++latest.current;
+      void loadAround(point, ticket).catch(() => undefined);
+    });
+  }, [ready, location]);
 
   async function run(task: (ticket: number) => Promise<void>, label: string) {
     const ticket = ++latest.current;
@@ -114,6 +142,7 @@ export default function Zona() {
         Alert.alert("Indirizzo non trovato", "Prova a scrivere via, numero e città (per esempio «Via Roma 10, Genova»).");
         return;
       }
+      setLocation({ lat: place.lat, lng: place.lng, label: place.label });
       await loadAround({ lat: place.lat, lng: place.lng }, ticket);
     }, "Cerco l'indirizzo…");
 

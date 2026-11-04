@@ -11,7 +11,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SpesaChiara",
+  title: "SalvaSpesa",
   description: "Confronto intelligente di volantini, prezzi e marchi di qualità dei supermercati italiani.",
 };
 

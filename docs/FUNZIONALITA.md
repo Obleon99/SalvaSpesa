@@ -1,5 +1,7 @@
 # SalvaSpesa — Funzionalità
 
+Progetto di Obleon.
+
 Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTURO]** più avanti
 
 ## 1. Posizione e supermercati vicini
@@ -51,7 +53,7 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[FATTO]** «Segnala un prezzo»: modulo che salva la segnalazione nel browser e in `data/reports.jsonl`
 
 ## 6. Confronti (pagina «Confronta Prodotti & Prezzi»)
-- **[FATTO]** Confronti calcolati sulle offerte reali dei preferiti, per oltre 40 tipi di prodotto (biscotti, pasta, riso, caffè, latte, parmigiano, pollo, manzo, salmone, olio, burro, passata, detersivi, shampoo, dentifricio…): schede **Marca leader / Miglior scelta qualità-prezzo / Massimo risparmio**, risparmio sempre rispetto alla marca leader, consiglio SpesaChiara generato dai dati
+- **[FATTO]** Confronti calcolati sulle offerte reali dei preferiti, per oltre 40 tipi di prodotto (biscotti, pasta, riso, caffè, latte, parmigiano, pollo, manzo, salmone, olio, burro, passata, detersivi, shampoo, dentifricio…): schede **Marca leader / Miglior scelta qualità-prezzo / Massimo risparmio**, risparmio sempre rispetto alla marca leader, consiglio SalvaSpesa generato dai dati
 - **[FATTO]** Vista **Schede** e vista **Tabella rapida** (matrice prodotto × insegna con la cella migliore evidenziata e il risparmio al kg/l)
 - **[FATTO]** Filtri per categoria (le 8 categorie nutrizionali: Proteine, Carboidrati, Frutta e verdura, Grassi, Casa e cura persona, Dolci, Bevande, Bevande calde, più Bio & Filiera) e per insegna (ricalcolano i confronti)
 - **[FATTO]** Banner d'analisi con risparmio medio, benchmark marca leader vs alternativa, risparmio del carrello e **download del confronto in CSV**
@@ -79,7 +81,7 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[FATTO]** Posizione e punti vendita: OpenStreetMap (Nominatim per gli indirizzi, Overpass per i supermercati)
 - **[FATTO]** Profilo, posizione e preferiti salvati nel browser (localStorage)
 - **[FATTO]** Pacchetto `apps/scrapers`: adapter per catena, validazione con schema condiviso (`ScrapedOffer`), snapshot JSON in `data/offers/<catena>/latest.json` (comando: `pnpm --filter @salvaspesa/scrapers scrape [catena]`)
-- **[FATTO]** Aggiornamento automatico giornaliero: l'app scrive in `data/tracked.json` le insegne e i negozi Esselunga che segui; lo script `apps/scrapers/scripts/scrape-daily.cmd` (`pnpm --filter @salvaspesa/scrapers scrape:tracked`) li aggiorna e salva lo snapshot del giorno; lo stesso script aggiorna anche i listini completi (`--catalog`), che alimenta lo storico dei prezzi. È pianificato in Windows come attività «SpesaChiara aggiornamento volantini» ogni giorno alle 07:30 (esito in `data/scrape.log`). Per cambiarlo o toglierlo: `schtasks /Delete /TN "SpesaChiara aggiornamento volantini" /F`. Il PC deve essere acceso a quell'ora; se non lo è, i dati si aggiornano comunque alla prima apertura dell'app (dati più vecchi di 6 ore)
+- **[FATTO]** Aggiornamento automatico giornaliero: l'app scrive in `data/tracked.json` le insegne e i negozi Esselunga che segui; lo script `apps/scrapers/scripts/scrape-daily.cmd` (`pnpm --filter @salvaspesa/scrapers scrape:tracked`) li aggiorna e salva lo snapshot del giorno; lo stesso script aggiorna anche i listini completi (`--catalog`), che alimenta lo storico dei prezzi. È pianificato in Windows come attività «SalvaSpesa aggiornamento volantini» ogni giorno alle 07:30 (esito in `data/scrape.log`). Per cambiarlo o toglierlo: `schtasks /Delete /TN "SalvaSpesa aggiornamento volantini" /F`. Il PC deve essere acceso a quell'ora; se non lo è, i dati si aggiornano comunque alla prima apertura dell'app (dati più vecchi di 6 ore)
 - **[PROSSIMO]** Importare gli snapshot in Postgres (schema già pronto in `apps/backend/prisma`) e collegarli al web
 - **[PROSSIMO]** Abbinare le offerte ai prodotti canonici tra catene (EAN dove c'è, altrimenti marca + nome + formato)
 - **[PROSSIMO]** Collegamento web ↔ backend tRPC al posto dei dati dimostrativi

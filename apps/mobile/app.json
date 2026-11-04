@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "SpesaChiara",
-    "slug": "spesachiara",
+    "name": "SalvaSpesa",
+    "slug": "salvaspesa",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -33,10 +33,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "SpesaChiara usa la posizione per trovare i supermercati vicini."
+          "locationWhenInUsePermission": "SalvaSpesa usa la posizione per trovare i supermercati vicini."
         }
       ]
     ],
-    "scheme": "spesachiara"
+    "scheme": "salvaspesa"
   }
 }

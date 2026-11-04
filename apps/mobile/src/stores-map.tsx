@@ -98,7 +98,7 @@ export function StoresMap({ stores, favoriteIds, center, selectedId, onSelect, o
       ref={ref}
       style={styles.map}
       originWhitelist={["*"]}
-      source={{ html: HTML, baseUrl: "https://spesachiara.app" }}
+      source={{ html: HTML, baseUrl: "https://salvaspesa.app" }}
       javaScriptEnabled
       androidLayerType="hardware"
       onMessage={(event: WebViewMessageEvent) => {

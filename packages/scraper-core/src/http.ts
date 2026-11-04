@@ -1,4 +1,6 @@
-const USER_AGENT = "Mozilla/5.0 (compatible; SpesaChiaraBot/0.1; progetto personale di confronto prezzi)";
+import { scraperConfig } from "./config";
+
+const USER_AGENT = "Mozilla/5.0 (compatible; SalvaSpesaBot/0.1; progetto personale di confronto prezzi)";
 
 export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -22,7 +24,7 @@ export async function fetchText(url: string, { retries = 2, timeoutMs = 30000 }:
       if (!response.ok) throw new Error(`HTTP ${response.status} su ${url}`);
       const text = await response.text();
       // Cede un attimo il thread: il telefono ridisegna l'interfaccia tra una pagina e l'altra invece di restare bloccato.
-      await sleep(8);
+      await sleep(scraperConfig.pauseMs);
       return text;
     } catch (error) {
       lastError = error;

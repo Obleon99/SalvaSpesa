@@ -45,7 +45,7 @@ const PROBES: Record<string, string[]> = {
   ],
   tigros: ["https://www.tigros.it/ebsn/api/products?promo=true&page=1&page_size=5&hash=w0d0t0"],
 };
-const PROBE_USER_AGENT = "Mozilla/5.0 (compatible; SpesaChiaraBot/0.1; progetto personale di confronto prezzi)";
+const PROBE_USER_AGENT = "Mozilla/5.0 (compatible; SalvaSpesaBot/0.1; progetto personale di confronto prezzi)";
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -58,6 +58,7 @@ const FORCE_MIN_PROBED_MS = 10 * 60 * 1000;
 const FORCE_MIN_BLIND_MS = 3 * HOUR_MS;
 // Al massimo due insegne scaricano e analizzano insieme: l'analisi pesa sul processore e l'app deve restare fluida.
 const MAX_PARALLEL_SCRAPES = 2;
+let maxParallel = MAX_PARALLEL_SCRAPES;
 const EXPIRED_KEEP_MS = 3 * DAY_MS;
 // Spazio massimo occupato dagli snapshot sul telefono.
 export const STORAGE_BUDGET_BYTES = 8 * 1024 * 1024;
@@ -107,7 +108,9 @@ async function scrapeChain(storage: SnapshotStorage, chainId: string, codes: str
     const groups = new Map<string, ScrapedOffer[]>();
     for (const offer of result.offers) {
       const compact = offer.description && offer.description.length > MAX_DESCRIPTION ? { ...offer, description: `${offer.description.slice(0, MAX_DESCRIPTION)}…` } : offer;
-      groups.set(offer.storeCode ?? "", [...(groups.get(offer.storeCode ?? "") ?? []), compact]);
+      const list = groups.get(offer.storeCode ?? "");
+      if (list) list.push(compact);
+      else groups.set(offer.storeCode ?? "", [compact]);
     }
     for (const [code, offers] of groups) {
       const snapshot: Snapshot = { scrapedAt, checkedAt: scrapedAt, offers, ...(fingerprint ? { fingerprint } : {}) };
@@ -145,6 +148,8 @@ export interface LoadOptions {
   force?: boolean;
   // Legge solo quello che è già sul telefono, senza usare la rete: serve a mostrare subito qualcosa.
   cacheOnly?: boolean;
+  // Aggiornamento silenzioso: una sola insegna alla volta e pause più lunghe, per non rallentare l'app.
+  background?: boolean;
   onProgress?: (message: string) => void;
 }
 
@@ -166,7 +171,7 @@ const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 let running = 0;
 const waiting: (() => void)[] = [];
 async function limited<T>(task: () => Promise<T>): Promise<T> {
-  if (running >= MAX_PARALLEL_SCRAPES) await new Promise<void>((resolve) => waiting.push(resolve));
+  if (running >= maxParallel) await new Promise<void>((resolve) => waiting.push(resolve));
   running++;
   try {
     return await task();
@@ -306,6 +311,8 @@ async function enforceBudget(storage: SnapshotStorage, keep: Set<string>): Promi
 // Offerte attive dei supermercati preferiti: legge gli snapshot recenti, verifica se i volantini sono cambiati e scarica solo quelli nuovi.
 export async function loadOffers(favorites: FavoriteRef[], storage: SnapshotStorage, options: LoadOptions = {}): Promise<OffersResponse> {
   const maxAge = options.maxAgeMs ?? MAX_AGE_MS;
+  maxParallel = options.background ? 1 : MAX_PARALLEL_SCRAPES;
+  scraperConfig.pauseMs = options.background ? 60 : 8;
   const byChain = new Map<string, FavoriteRef[]>();
   const seen = new Set<string>();
   for (const favorite of favorites) {

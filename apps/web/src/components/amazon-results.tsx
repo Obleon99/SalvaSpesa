@@ -102,7 +102,7 @@ export function AmazonResults({ query }: { query: string }) {
             ))}
           </ul>
           <p className="font-label-unit text-label-unit text-outline">
-            Prezzi e disponibilità Amazon aggiornati alle {updatedAt} e soggetti a variazioni. Come Affiliato Amazon, SpesaChiara
+            Prezzi e disponibilità Amazon aggiornati alle {updatedAt} e soggetti a variazioni. Come Affiliato Amazon, SalvaSpesa
             riceve un guadagno dagli acquisti idonei.
           </p>
         </>

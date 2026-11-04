@@ -8,7 +8,7 @@ import { useApp, type Profile } from "./state";
 import { colors } from "./theme";
 
 const SLIDES: { icon: IconName; title: string; text: string }[] = [
-  { icon: "cart", title: "Benvenuto in SpesaChiara", text: "Confronta le offerte dei supermercati vicino a te e scopri dove conviene davvero fare la spesa." },
+  { icon: "cart", title: "Benvenuto in SalvaSpesa", text: "Confronta le offerte dei supermercati vicino a te e scopri dove conviene davvero fare la spesa." },
   { icon: "pin", title: "Scegli i tuoi supermercati", text: "In «La mia zona» trovi i negozi intorno a te: tocca la stella per aggiungerli ai preferiti. Le offerte vengono scaricate dai volantini." },
   { icon: "tag", title: "Trova le occasioni", text: "In «Offerte» vedi prodotti e prezzi in griglia o in lista, ordinati per sconto. Nella Home trovi le migliori del momento." },
   { icon: "shield", title: "I tuoi dati restano con te", text: "Non c'è nessun server né account: profilo, preferiti e offerte sono salvati solo su questo telefono." },

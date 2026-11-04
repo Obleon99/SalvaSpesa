@@ -9,7 +9,7 @@ const OVERPASS_ENDPOINTS = [
   "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   "https://overpass-api.de/api/interpreter",
 ];
-const USER_AGENT = "SpesaChiara/0.1 (progetto personale di confronto volantini)";
+const USER_AGENT = "SalvaSpesa/0.1 (progetto personale di confronto volantini)";
 const MAX_RADIUS_KM = 25;
 const REQUEST_TIMEOUT_MS = 60000;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;

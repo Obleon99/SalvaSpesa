@@ -44,7 +44,7 @@ function downloadCsv(groups: CompareGroup[]) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `spesachiara-confronto-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `salvaspesa-confronto-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }

@@ -12,7 +12,7 @@ const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const SCRAPE_TIMEOUT_MS = 4 * 60 * 1000;
 const CATALOG_TIMEOUT_MS = 15 * 60 * 1000;
 const MAX_STORE_DISTANCE_KM = 1;
-const USER_AGENT = "Mozilla/5.0 (compatible; SpesaChiaraBot/0.1; progetto personale di confronto prezzi)";
+const USER_AGENT = "Mozilla/5.0 (compatible; SalvaSpesaBot/0.1; progetto personale di confronto prezzi)";
 
 const CHAIN_NAMES: Record<string, string> = {
   lidl: "Lidl",

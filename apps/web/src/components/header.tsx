@@ -132,7 +132,7 @@ export function Header() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-on-primary">
                 <Icon name="eco" className="text-lg" />
               </div>
-              <span className="font-title-md text-title-md text-primary font-bold tracking-tight">SpesaChiara</span>
+              <span className="font-title-md text-title-md text-primary font-bold tracking-tight">SalvaSpesa</span>
             </Link>
             <nav className="hidden lg:flex items-center gap-space-xs">{nav}</nav>
           </div>
