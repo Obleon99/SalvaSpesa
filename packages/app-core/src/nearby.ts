@@ -36,7 +36,7 @@ function toStore(element: OverpassElement): RawStore | null {
 }
 
 // Supermercati di OpenStreetMap nel raggio indicato: si interrogano più server in parallelo e vince il primo che risponde.
-export async function fetchNearbyStores(lat: number, lng: number, radiusKm: number): Promise<RawStore[]> {
+export async function fetchNearbyStores(lat: number, lng: number, radiusKm: number, onUpdate?: (stores: RawStore[]) => void): Promise<RawStore[]> {
   const radius = Math.min(Math.max(radiusKm, 1), MAX_RADIUS_KM);
   const cacheKey = `${Math.round(lat * 100)}:${Math.round(lng * 100)}:${Math.round(radius)}`;
   const cached = cache.get(cacheKey);
@@ -63,41 +63,63 @@ export async function fetchNearbyStores(lat: number, lng: number, radiusKm: numb
       clearTimeout(timer);
     }
   });
-  // Overpass è spesso sovraccarico: se non risponde entro pochi secondi parte in parallelo Nominatim, che è rapido (ma meno completo).
-  const overpass = Promise.any(attempts);
-  const quick = new Promise<OverpassElement[]>((resolve, reject) => {
-    setTimeout(() => nominatimStores(lat, lng, radius).then(resolve, reject), 6000);
+  // Overpass è completo ma spesso sovraccarico: se non risponde entro pochi secondi parte Nominatim, più rapido ma meno completo.
+  // In quel caso si mostrano subito i risultati rapidi e, quando Overpass finisce, la lista viene completata (onUpdate).
+  const toStores = (elements: OverpassElement[]) =>
+    // Il filtro del server è largo (nomi brevi come "md" o "pam"): quello preciso è riconoscere l'insegna.
+    dedupeStores(elements.map(toStore).filter((store): store is RawStore => store !== null && store.chainId !== "altro"));
+  const full = Promise.any(attempts).then(toStores);
+  const quick = new Promise<RawStore[]>((resolve, reject) => {
+    setTimeout(() => nominatimStores(lat, lng, radius).then((elements) => resolve(toStores(elements)), reject), 5000);
   });
-  let elements: OverpassElement[];
+  let first: { stores: RawStore[]; complete: boolean };
   try {
-    elements = await Promise.any([overpass, quick]);
+    first = await Promise.any([full.then((stores) => ({ stores, complete: true })), quick.then((stores) => ({ stores, complete: false }))]);
   } catch {
     throw new Error("Nessun servizio di mappe ha risposto");
   }
-  // Il filtro del server è largo (nomi brevi come "md" o "pam"): quello preciso è riconoscere l'insegna.
-  const stores = dedupeStores(elements.map(toStore).filter((store): store is RawStore => store !== null && store.chainId !== "altro"));
-  cache.set(cacheKey, { at: Date.now(), stores });
-  return stores;
+  if (first.complete) cache.set(cacheKey, { at: Date.now(), stores: first.stores });
+  else
+    full.then(
+      (stores) => {
+        cache.set(cacheKey, { at: Date.now(), stores });
+        onUpdate?.(stores);
+      },
+      () => undefined,
+    );
+  return first.stores;
 }
 
-// Ricerca di riserva: i supermercati di OpenStreetMap tramite Nominatim, nel riquadro attorno al punto.
-async function nominatimStores(lat: number, lng: number, radiusKm: number): Promise<OverpassElement[]> {
-  const dLat = radiusKm / 111;
-  const dLng = radiusKm / (111 * Math.max(Math.cos((lat * Math.PI) / 180), 0.2));
-  const params = new URLSearchParams({
-    q: "supermercato",
-    format: "jsonv2",
-    limit: "50",
-    bounded: "1",
-    viewbox: `${lng - dLng},${lat + dLat},${lng + dLng},${lat - dLat}`,
-    "accept-language": "it",
-  });
+// Insegne cercate una per una su Nominatim: la ricerca generica "supermercato" ne restituisce al massimo 50 e ne perde.
+const QUICK_QUERIES = ["supermercato", "esselunga", "ekom", "conad", "coop", "lidl", "eurospin", "carrefour", "md", "penny", "pam", "aldi", "tigros", "despar", "iper"];
+
+async function nominatimOne(q: string, viewbox: string): Promise<OverpassElement[]> {
+  const params = new URLSearchParams({ q, format: "jsonv2", limit: "50", bounded: "1", viewbox, "accept-language": "it" });
   const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { "User-Agent": USER_AGENT } });
   if (!response.ok) throw new Error(`Nominatim ${response.status}`);
   const results = (await response.json()) as { osm_type: string; osm_id: number; lat: string; lon: string; name?: string; category?: string; type?: string }[];
   return results
     .filter((r) => r.category === "shop" && r.type === "supermarket")
     .map((r) => ({ type: r.osm_type, id: r.osm_id, lat: Number(r.lat), lon: Number(r.lon), tags: { name: r.name ?? "" } }));
+}
+
+async function nominatimStores(lat: number, lng: number, radiusKm: number): Promise<OverpassElement[]> {
+  const dLat = radiusKm / 111;
+  const dLng = radiusKm / (111 * Math.max(Math.cos((lat * Math.PI) / 180), 0.2));
+  const viewbox = `${lng - dLng},${lat + dLat},${lng + dLng},${lat - dLat}`;
+  const all: OverpassElement[] = [];
+  let ok = false;
+  // Tre richieste alla volta, per rispettare il servizio gratuito.
+  for (let i = 0; i < QUICK_QUERIES.length; i += 3) {
+    const batch = await Promise.allSettled(QUICK_QUERIES.slice(i, i + 3).map((q) => nominatimOne(q, viewbox)));
+    for (const result of batch)
+      if (result.status === "fulfilled") {
+        ok = true;
+        all.push(...result.value);
+      }
+  }
+  if (!ok) throw new Error("Nominatim non risponde");
+  return all;
 }
 
 export interface GeocodedPlace {

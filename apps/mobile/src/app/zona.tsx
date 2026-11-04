@@ -46,12 +46,17 @@ export default function Zona() {
   // Cerca i supermercati attorno a un punto qualsiasi e centra la mappa lì. Non blocca l'app: la rete gira in background
   // e l'interfaccia (mappa, scorrimento, altre schede) resta utilizzabile.
   async function loadAround(point: LatLng, ticket: number) {
-    const found = await fetchNearbyStores(point.lat, point.lng, RADIUS_KM);
+    const rank = (found: Awaited<ReturnType<typeof fetchNearbyStores>>) =>
+      found
+        .map((s) => ({ ...s, distanceKm: haversineKm(point, s) }))
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+        .slice(0, MAX_STORES);
+    // Quando arriva il risultato completo (dopo uno rapido ma parziale) la lista si aggiorna senza muovere la mappa.
+    const found = await fetchNearbyStores(point.lat, point.lng, RADIUS_KM, (more) => {
+      if (ticket === latest.current) setStores(rank(more));
+    });
     if (ticket !== latest.current) return;
-    const nearest = found
-      .map((s) => ({ ...s, distanceKm: haversineKm(point, s) }))
-      .sort((a, b) => a.distanceKm - b.distanceKm)
-      .slice(0, MAX_STORES);
+    const nearest = rank(found);
     // Si cede un attimo il controllo all'interfaccia prima dell'aggiornamento più pesante, così la mappa non scatta.
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     if (ticket !== latest.current) return;
