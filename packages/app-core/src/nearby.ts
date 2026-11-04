@@ -2,10 +2,14 @@ import { detectChain } from "./chains";
 import { dedupeStores, type RawStore } from "./geo";
 
 const OVERPASS_ENDPOINTS = [
-  "https://overpass.openstreetmap.fr/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ];
+// Ultime ricerche in memoria: tornare sulla stessa zona non rifà la richiesta.
+const CACHE_MS = 30 * 60 * 1000;
+const cache = new Map<string, { at: number; stores: RawStore[] }>();
 const USER_AGENT = "SpesaChiara/0.1 (progetto personale di confronto volantini)";
 export const MAX_RADIUS_KM = 25;
 // Solo insegne di supermercati note: negozietti e attività con tag "supermarket" generici non servono al confronto dei volantini.
@@ -34,15 +38,18 @@ function toStore(element: OverpassElement): RawStore | null {
 // Supermercati di OpenStreetMap nel raggio indicato: si interrogano più server in parallelo e vince il primo che risponde.
 export async function fetchNearbyStores(lat: number, lng: number, radiusKm: number): Promise<RawStore[]> {
   const radius = Math.min(Math.max(radiusKm, 1), MAX_RADIUS_KM);
+  const cacheKey = `${Math.round(lat * 100)}:${Math.round(lng * 100)}:${Math.round(radius)}`;
+  const cached = cache.get(cacheKey);
+  if (cached && Date.now() - cached.at < CACHE_MS) return cached.stores;
   const roundedLat = Math.round(lat * 1000) / 1000;
   const roundedLng = Math.round(lng * 1000) / 1000;
   const around = `(around:${Math.round(radius * 1000)},${roundedLat},${roundedLng})`;
   const matches = ["name", "brand", "operator"].map((tag) => `nwr["shop"="supermarket"]["${tag}"~"${KNOWN_CHAINS}",i]${around};`).join("");
   const query = `[out:json][timeout:25];(${matches});out center tags 400;`;
   const attempts = OVERPASS_ENDPOINTS.map(async (endpoint) => {
-    // Un server lento non deve far aspettare minuti: dopo 15 secondi si rinuncia a quello e vince un altro.
+    // Un server lento non deve far aspettare minuti: dopo 40 secondi si rinuncia a quello e vince un altro.
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
+    const timer = setTimeout(() => controller.abort(), 40000);
     try {
       const response = await fetch(endpoint, {
         method: "POST",
@@ -56,9 +63,41 @@ export async function fetchNearbyStores(lat: number, lng: number, radiusKm: numb
       clearTimeout(timer);
     }
   });
-  const elements = await Promise.any(attempts);
+  // Overpass è spesso sovraccarico: se non risponde entro pochi secondi parte in parallelo Nominatim, che è rapido (ma meno completo).
+  const overpass = Promise.any(attempts);
+  const quick = new Promise<OverpassElement[]>((resolve, reject) => {
+    setTimeout(() => nominatimStores(lat, lng, radius).then(resolve, reject), 6000);
+  });
+  let elements: OverpassElement[];
+  try {
+    elements = await Promise.any([overpass, quick]);
+  } catch {
+    throw new Error("Nessun servizio di mappe ha risposto");
+  }
   // Il filtro del server è largo (nomi brevi come "md" o "pam"): quello preciso è riconoscere l'insegna.
-  return dedupeStores(elements.map(toStore).filter((store): store is RawStore => store !== null && store.chainId !== "altro"));
+  const stores = dedupeStores(elements.map(toStore).filter((store): store is RawStore => store !== null && store.chainId !== "altro"));
+  cache.set(cacheKey, { at: Date.now(), stores });
+  return stores;
+}
+
+// Ricerca di riserva: i supermercati di OpenStreetMap tramite Nominatim, nel riquadro attorno al punto.
+async function nominatimStores(lat: number, lng: number, radiusKm: number): Promise<OverpassElement[]> {
+  const dLat = radiusKm / 111;
+  const dLng = radiusKm / (111 * Math.max(Math.cos((lat * Math.PI) / 180), 0.2));
+  const params = new URLSearchParams({
+    q: "supermercato",
+    format: "jsonv2",
+    limit: "50",
+    bounded: "1",
+    viewbox: `${lng - dLng},${lat + dLat},${lng + dLng},${lat - dLat}`,
+    "accept-language": "it",
+  });
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { "User-Agent": USER_AGENT } });
+  if (!response.ok) throw new Error(`Nominatim ${response.status}`);
+  const results = (await response.json()) as { osm_type: string; osm_id: number; lat: string; lon: string; name?: string; category?: string; type?: string }[];
+  return results
+    .filter((r) => r.category === "shop" && r.type === "supermarket")
+    .map((r) => ({ type: r.osm_type, id: r.osm_id, lat: Number(r.lat), lon: Number(r.lon), tags: { name: r.name ?? "" } }));
 }
 
 export interface GeocodedPlace {
