@@ -82,10 +82,8 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[FATTO]** Profilo, posizione e preferiti salvati nel browser (localStorage)
 - **[FATTO]** Pacchetto `apps/scrapers`: adapter per catena, validazione con schema condiviso (`ScrapedOffer`), snapshot JSON in `data/offers/<catena>/latest.json` (comando: `pnpm --filter @salvaspesa/scrapers scrape [catena]`)
 - **[FATTO]** Aggiornamento automatico giornaliero: l'app scrive in `data/tracked.json` le insegne e i negozi Esselunga che segui; lo script `apps/scrapers/scripts/scrape-daily.cmd` (`pnpm --filter @salvaspesa/scrapers scrape:tracked`) li aggiorna e salva lo snapshot del giorno; lo stesso script aggiorna anche i listini completi (`--catalog`), che alimenta lo storico dei prezzi. È pianificato in Windows come attività «SalvaSpesa aggiornamento volantini» ogni giorno alle 07:30 (esito in `data/scrape.log`). Per cambiarlo o toglierlo: `schtasks /Delete /TN "SalvaSpesa aggiornamento volantini" /F`. Il PC deve essere acceso a quell'ora; se non lo è, i dati si aggiornano comunque alla prima apertura dell'app (dati più vecchi di 6 ore)
-- **[PROSSIMO]** Importare gli snapshot in Postgres (schema già pronto in `apps/backend/prisma`) e collegarli al web
 - **[PROSSIMO]** Abbinare le offerte ai prodotti canonici tra catene (EAN dove c'è, altrimenti marca + nome + formato)
-- **[PROSSIMO]** Collegamento web ↔ backend tRPC al posto dei dati dimostrativi
-- **[FUTURO]** App mobile (Expo) sullo stesso backend
+- **[FATTO]** App mobile (Expo) autonoma: scarica e analizza i volantini direttamente sul telefono, senza server
 
 ### Fonti dati per catena (verificate il 20/10/2026)
 | Catena | Stato | Cosa fornisce |

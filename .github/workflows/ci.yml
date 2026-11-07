@@ -15,10 +15,4 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @salvaspesa/backend exec prisma generate
-        env:
-          DATABASE_URL: postgresql://user:pass@localhost:5432/db
       - run: pnpm turbo run typecheck
-      - run: pnpm --filter @salvaspesa/backend exec prisma validate
-        env:
-          DATABASE_URL: postgresql://user:pass@localhost:5432/db
