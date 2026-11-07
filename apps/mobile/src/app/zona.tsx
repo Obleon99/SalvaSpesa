@@ -136,7 +136,13 @@ export default function Zona() {
   const searchAddress = () =>
     run(async (ticket) => {
       Keyboard.dismiss();
-      const place = await geocodeAddress(address);
+      let place: Awaited<ReturnType<typeof geocodeAddress>>;
+      try {
+        place = await geocodeAddress(address);
+      } catch {
+        if (ticket === latest.current) Alert.alert("Non riesco a cercare l'indirizzo", "Il servizio di ricerca luoghi non risponde: riprova tra qualche istante.");
+        return;
+      }
       if (ticket !== latest.current) return;
       if (!place) {
         Alert.alert("Indirizzo non trovato", "Prova a scrivere via, numero e città (per esempio «Via Roma 10, Genova»).");

@@ -44,7 +44,7 @@ export async function fetchNearbyStores(lat: number, lng: number, radiusKm: numb
   const roundedLat = Math.round(lat * 1000) / 1000;
   const roundedLng = Math.round(lng * 1000) / 1000;
   const around = `(around:${Math.round(radius * 1000)},${roundedLat},${roundedLng})`;
-  const matches = ["name", "brand", "operator"].map((tag) => `nwr["shop"="supermarket"]["${tag}"~"${KNOWN_CHAINS}",i]${around};`).join("");
+  const matches = ["name", "brand", "operator"].map((tag) => `nwr["shop"~"^(supermarket|mall|department_store|hypermarket)$"]["${tag}"~"${KNOWN_CHAINS}",i]${around};`).join("");
   const query = `[out:json][timeout:25];(${matches});out center tags 400;`;
   const attempts = OVERPASS_ENDPOINTS.map(async (endpoint) => {
     // Un server lento non deve far aspettare minuti: dopo 40 secondi si rinuncia a quello e vince un altro.
@@ -70,7 +70,15 @@ export async function fetchNearbyStores(lat: number, lng: number, radiusKm: numb
     dedupeStores(elements.map(toStore).filter((store): store is RawStore => store !== null && store.chainId !== "altro"));
   const full = Promise.any(attempts).then(toStores);
   const quick = new Promise<RawStore[]>((resolve, reject) => {
-    setTimeout(() => nominatimStores(lat, lng, radius).then((elements) => resolve(toStores(elements)), reject), 5000);
+    // Se tutti i server Overpass rispondono subito con un errore non serve aspettare: Nominatim parte subito.
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
+      nominatimStores(lat, lng, radius).then((elements) => resolve(toStores(elements)), reject);
+    };
+    setTimeout(start, 5000);
+    full.catch(start);
   });
   let first: { stores: RawStore[]; complete: boolean };
   try {
@@ -91,15 +99,34 @@ export async function fetchNearbyStores(lat: number, lng: number, radiusKm: numb
 }
 
 // Insegne cercate una per una su Nominatim: la ricerca generica "supermercato" ne restituisce al massimo 50 e ne perde.
-const QUICK_QUERIES = ["supermercato", "esselunga", "ekom", "conad", "coop", "lidl", "eurospin", "carrefour", "md", "penny", "pam", "aldi", "tigros", "despar", "iper"];
+const QUICK_QUERIES = ["supermercato", "esselunga", "ekom", "conad", "coop", "lidl", "eurospin", "carrefour", "md", "penny", "pam", "aldi", "tigros", "iper tigros", "despar", "iper", "ipermercato"];
+
+// Nominatim limita le richieste (HTTP 429): si riprova dopo una breve pausa.
+async function nominatimFetch(params: URLSearchParams): Promise<Response> {
+  let last = 0;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { "User-Agent": USER_AGENT }, signal: controller.signal });
+      if (response.ok) return response;
+      last = response.status;
+    } catch {
+      last = -1;
+    } finally {
+      clearTimeout(timer);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+  }
+  throw new Error(`Nominatim ${last}`);
+}
 
 async function nominatimOne(q: string, viewbox: string): Promise<OverpassElement[]> {
   const params = new URLSearchParams({ q, format: "jsonv2", limit: "50", bounded: "1", viewbox, "accept-language": "it" });
-  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { "User-Agent": USER_AGENT } });
-  if (!response.ok) throw new Error(`Nominatim ${response.status}`);
+  const response = await nominatimFetch(params);
   const results = (await response.json()) as { osm_type: string; osm_id: number; lat: string; lon: string; name?: string; category?: string; type?: string }[];
   return results
-    .filter((r) => r.category === "shop" && r.type === "supermarket")
+    .filter((r) => r.category === "shop" && ["supermarket", "mall", "department_store", "hypermarket"].includes(r.type ?? ""))
     .map((r) => ({ type: r.osm_type, id: r.osm_id, lat: Number(r.lat), lon: Number(r.lon), tags: { name: r.name ?? "" } }));
 }
 
@@ -109,9 +136,9 @@ async function nominatimStores(lat: number, lng: number, radiusKm: number): Prom
   const viewbox = `${lng - dLng},${lat + dLat},${lng + dLng},${lat - dLat}`;
   const all: OverpassElement[] = [];
   let ok = false;
-  // Tre richieste alla volta, per rispettare il servizio gratuito.
-  for (let i = 0; i < QUICK_QUERIES.length; i += 3) {
-    const batch = await Promise.allSettled(QUICK_QUERIES.slice(i, i + 3).map((q) => nominatimOne(q, viewbox)));
+  // Due richieste alla volta, per rispettare il servizio gratuito.
+  for (let i = 0; i < QUICK_QUERIES.length; i += 2) {
+    const batch = await Promise.allSettled(QUICK_QUERIES.slice(i, i + 2).map((q) => nominatimOne(q, viewbox)));
     for (const result of batch)
       if (result.status === "fulfilled") {
         ok = true;
@@ -133,8 +160,7 @@ export async function geocodeAddress(query: string): Promise<GeocodedPlace | nul
   const text = query.trim();
   if (text.length < 3) return null;
   const params = new URLSearchParams({ q: text, format: "jsonv2", limit: "1", countrycodes: "it", "accept-language": "it" });
-  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { "User-Agent": USER_AGENT } });
-  if (!response.ok) throw new Error(`Ricerca indirizzo: HTTP ${response.status}`);
+  const response = await nominatimFetch(params);
   const results = (await response.json()) as { lat: string; lon: string; display_name: string }[];
   const first = results[0];
   if (!first) return null;
