@@ -52,6 +52,8 @@ interface AppState extends Persisted {
 
 const Ctx = createContext<AppState | null>(null);
 const STATE_KEY = "state";
+// Se i volantini sono scaduti ma sono stati controllati da poco, non si ripropone subito l'aggiornamento.
+const RECHECK_MS = 3 * 60 * 60 * 1000;
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [persisted, setPersisted] = useState<Persisted>(EMPTY);
@@ -60,6 +62,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [progress, setProgress] = useState("");
+  const [attempted, setAttempted] = useState(false);
   const busy = useRef(false);
   const again = useRef(false);
   const latest = useRef<(force?: boolean, cacheOnly?: boolean, background?: boolean) => Promise<void>>(async () => undefined);
@@ -106,6 +109,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           // Un respiro prima di consegnare i dati nuovi alle schermate.
           if (background) await new Promise<void>((resolve) => setTimeout(resolve, 50));
           setData(fresh);
+          setAttempted(true);
         }
       } finally {
         setUpdating(false);
@@ -142,16 +146,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, [ready, refresh, persisted.favorites]);
 
-  // Le offerte restano in cache con la loro scadenza: se un negozio non ha più offerte valide serve aggiornare.
+  // Il pulsante compare solo se i volantini in cache sono scaduti (e non li abbiamo appena controllati) o se un negozio non è mai stato scaricato.
+  // Un sito che non risponde o un volantino non leggibile non lo tengono acceso per sempre.
   const needsUpdate = useMemo(() => {
     if (!ready || !data || persisted.favorites.length === 0) return false;
     const now = Date.now();
     return persisted.favorites.some((f) => {
       const source = data.sources.find((s) => s.storeId === f.id);
-      if (!source || (source.status === "unsupported" || source.status === "unresolved")) return false;
-      return source.status !== "ok" || !source.validUntil || Date.parse(source.validUntil) < now;
+      if (!source || source.status === "unsupported" || source.status === "unresolved") return false;
+      if (!source.validUntil) return !attempted;
+      if (Date.parse(source.validUntil) >= now) return false;
+      return !source.scrapedAt || now - Date.parse(source.scrapedAt) > RECHECK_MS;
     });
-  }, [ready, data, persisted.favorites]);
+  }, [ready, data, persisted.favorites, attempted]);
 
   const value = useMemo<AppState>(
     () => ({
