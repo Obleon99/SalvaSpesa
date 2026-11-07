@@ -14,11 +14,11 @@ export function ViewToggle({ view, onChange }: { view: ComparisonView; onChange:
     <div className="flex items-center gap-space-xs self-start md:self-auto bg-surface-container-low p-1.5 rounded-xl shadow-sm">
       <button className={view === "cards" ? activeClasses : inactiveClasses} onClick={() => onChange("cards")} aria-pressed={view === "cards"}>
         <Icon name="grid_view" className="text-lg" />
-        <span className="hidden sm:inline font-body-sm text-body-sm font-semibold">Schede Matrice</span>
+        <span className="hidden sm:inline font-body-sm text-body-sm font-semibold">Schede</span>
       </button>
       <button className={view === "table" ? activeClasses : inactiveClasses} onClick={() => onChange("table")} aria-pressed={view === "table"}>
         <Icon name="table_rows" className="text-lg" />
-        <span className="hidden sm:inline font-body-sm text-body-sm">Tabella Rapida</span>
+        <span className="hidden sm:inline font-body-sm text-body-sm">Tabella</span>
       </button>
     </div>
   );

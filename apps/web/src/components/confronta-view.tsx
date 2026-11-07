@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { CATEGORIES, buildComparisonGroups, qualityLabels, summarizeGroups } from "@salvaspesa/deal-logic";
-import { BrandTracker } from "./brand-tracker";
 import { ComparisonSections } from "./comparison-sections";
 import { FilterBar, type FilterOption } from "./filter-bar";
 import { Icon } from "./icon";
@@ -45,28 +44,21 @@ function downloadCsv(groups: CompareGroup[]) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `spesachiara-confronto-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `salvaspesa-confronto-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
 
 export function ConfrontaView() {
   const router = useRouter();
-  const { ready, favorites, cart, offersStatus } = useUserState();
+  const { ready, favorites, cart, offersStatus, profile } = useUserState();
   const active = useActiveOffers();
   const [view, setView] = useState<ComparisonView>("cards");
   const [category, setCategory] = useState("all");
-  const [hidden, setHidden] = useState<string[]>([]);
   const [opened, setOpened] = useState<CompareOffer | null>(null);
   const [modal, setModal] = useState<"scoring" | "report" | null>(null);
 
-  const chains = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const offer of active) map.set(offer.chainId, offer.chainName);
-    return [...map.entries()].map(([id, label]): FilterOption => ({ id, label }));
-  }, [active]);
-
-  const visibleOffers = useMemo(() => active.filter((offer) => !hidden.includes(offer.chainId)), [active, hidden]);
+  const visibleOffers = active;
 
   const allGroups = useMemo(() => buildComparisonGroups(visibleOffers), [visibleOffers]);
   const bioGroups = useMemo(
@@ -79,21 +71,15 @@ export function ConfrontaView() {
 
   const categories: FilterOption[] = [
     { id: "all", label: "Tutte le Categorie", count: allGroups.length },
-    ...CATEGORIES.map((c) => ({ id: c.id, label: c.label, icon: c.icon, count: allGroups.filter((g) => g.family.category === c.id).length })),
-    { id: "bio", label: "Bio & Filiera", icon: "eco", count: bioGroups.length },
+    ...CATEGORIES.filter((c) => profile.categories.length === 0 || profile.categories.includes(c.id)).map((c) => ({ id: c.id, label: c.label, icon: c.icon, count: allGroups.filter((g) => g.family.category === c.id).length })),
+    // «Bio» non è una categoria del profilo: con una selezione attiva non si mostra.
+    ...(profile.categories.length === 0 ? [{ id: "bio", label: "Bio & Filiera", icon: "eco", count: bioGroups.length }] : []),
   ];
 
   const cartSavings = cart.reduce((sum, item) => sum + Math.max(0, (item.originalPrice ?? item.price) - item.price) * (item.quantity ?? 1), 0);
 
-  function toggleChain(id: string) {
-    setHidden((current) => {
-      if (current.includes(id)) return current.filter((c) => c !== id);
-      return chains.length - current.length <= 1 ? current : [...current, id];
-    });
-  }
-
   function compareInTracker(offer: CompareOffer) {
-    router.push(`/?q=${encodeURIComponent(offer.name)}#tracker`);
+    router.push(`/cerca?q=${encodeURIComponent(offer.name)}`);
   }
 
   const noFavorites = ready && favorites.length === 0;
@@ -105,9 +91,6 @@ export function ConfrontaView() {
         categories={categories}
         category={category}
         onCategory={setCategory}
-        chains={chains}
-        selectedChains={hidden.length === 0 ? [] : chains.filter((c) => !hidden.includes(c.id)).map((c) => c.id)}
-        onToggleChain={toggleChain}
       />
 
       <InsightBanner groups={allGroups} summary={summary} cartSavings={cartSavings} cartItems={cart.length} onDownload={() => downloadCsv(groups.length ? groups : allGroups)} />
@@ -139,7 +122,6 @@ export function ConfrontaView() {
 
       <ComparisonSections groups={groups} view={view} onOpen={setOpened} onCompare={compareInTracker} onScoring={() => setModal("scoring")} />
 
-      <BrandTracker />
       <MethodologyFooter onScoring={() => setModal("scoring")} onReport={() => setModal("report")} />
 
       {opened ? <ProductModal offer={opened} onClose={() => setOpened(null)} /> : null}

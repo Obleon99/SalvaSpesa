@@ -1,8 +1,11 @@
 # SalvaSpesa — Funzionalità
 
+Progetto di Obleon.
+
 Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTURO]** più avanti
 
 ## 1. Posizione e supermercati vicini
+- **[FATTO]** Interfaccia semplificata: un'unica barra con menu (Offerte, Confronta, Cerca, Carrello), ricerca, «La mia zona» (posizione, preferiti e mappa nella stessa pagina) e account
 - **[FATTO]** Posizione dell'utente: geolocalizzazione del browser oppure inserimento manuale (CAP, città, indirizzo)
 - **[FATTO]** Raggio di ricerca regolabile (1–20 km)
 - **[FATTO]** Elenco dei supermercati nel raggio (da OpenStreetMap), con catena riconosciuta, indirizzo e distanza
@@ -23,7 +26,8 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[PROSSIMO]** Preferenze alimentari (bio, senza glutine, senza lattosio, vegetariano…) che filtrano offerte e confronti
 - **[PROSSIMO]** Marchi/prodotti "irrinunciabili" (es. Barilla) per cui non si accettano sostituzioni
 - **[FUTURO]** Più profili in famiglia e condivisione della lista della spesa
-- **[FUTURO]** Account e sincronizzazione tra dispositivi (oggi i dati stanno nel browser)
+- **[FATTO]** Registrazione e accesso con email e password: posizione, preferiti, carrello, avvisi e profilo si salvano nell'account e si ritrovano su ogni dispositivo (account in `data/accounts`, password con scrypt, sessione in cookie httpOnly). All'uscita il browser viene svuotato.
+- **[PROSSIMO]** Recupero password via email e database vero al posto dei file quando l'app esce dal computer di casa
 
 ## 4. Volantini e offerte
 - **[FATTO]** Pagina «Volantini & Offerte»: un riquadro per ogni volantino dei preferiti (offerte, scadenza, link al sito) e un esploratore di tutte le offerte attive (ricerca, insegna, categoria, ordinamento per sconto / prezzo / prezzo al kg-l / scadenza), con aggiunta al carrello, avviso e scheda prodotto
@@ -44,12 +48,12 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[FATTO]** Amazon.it nel tracker (link di ricerca; prezzi e prodotti con le credenziali dell'API ufficiale, vedi sotto)
 - **[FATTO]** Tracker dinamico: ricerca per marca/prodotto sulle offerte attive dei preferiti, miglior prezzo ora con scadenza, confronto con le altre catene, elenco di tutte le offerte trovate
 - **[FATTO]** Storico prezzi: ogni scraping salva uno snapshot giornaliero; il grafico a 30 giorni compare dal secondo giorno di dati
-- **[PROSSIMO]** Storico anche per prodotti non in offerta (oggi si vedono solo i giorni in cui il prodotto è in volantino)
+- **[FATTO]** Storico anche per i prodotti a listino (Aldi, Tigros, Eurospin, Conad) e non solo per quelli in volantino: `data/history/<catena>/` tiene un punto a ogni cambio di prezzo per ogni prodotto visto, ricostruito dagli snapshot già salvati la prima volta. Il listino completo non è pubblico per Lidl, Penny, Esselunga ed Ekom: per loro lo storico riguarda i prodotti che compaiono in volantino.
 - **[PROSSIMO]** Etichette affare: minimo storico, vero affare, sconto normale, finto sconto
 - **[FATTO]** «Segnala un prezzo»: modulo che salva la segnalazione nel browser e in `data/reports.jsonl`
 
 ## 6. Confronti (pagina «Confronta Prodotti & Prezzi»)
-- **[FATTO]** Confronti calcolati sulle offerte reali dei preferiti, per oltre 40 tipi di prodotto (biscotti, pasta, riso, caffè, latte, parmigiano, pollo, manzo, salmone, olio, burro, passata, detersivi, shampoo, dentifricio…): schede **Marca leader / Miglior scelta qualità-prezzo / Massimo risparmio**, risparmio sempre rispetto alla marca leader, consiglio SpesaChiara generato dai dati
+- **[FATTO]** Confronti calcolati sulle offerte reali dei preferiti, per oltre 40 tipi di prodotto (biscotti, pasta, riso, caffè, latte, parmigiano, pollo, manzo, salmone, olio, burro, passata, detersivi, shampoo, dentifricio…): schede **Marca leader / Miglior scelta qualità-prezzo / Massimo risparmio**, risparmio sempre rispetto alla marca leader, consiglio SalvaSpesa generato dai dati
 - **[FATTO]** Vista **Schede** e vista **Tabella rapida** (matrice prodotto × insegna con la cella migliore evidenziata e il risparmio al kg/l)
 - **[FATTO]** Filtri per categoria (le 8 categorie nutrizionali: Proteine, Carboidrati, Frutta e verdura, Grassi, Casa e cura persona, Dolci, Bevande, Bevande calde, più Bio & Filiera) e per insegna (ricalcolano i confronti)
 - **[FATTO]** Banner d'analisi con risparmio medio, benchmark marca leader vs alternativa, risparmio del carrello e **download del confronto in CSV**
@@ -77,11 +81,9 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 - **[FATTO]** Posizione e punti vendita: OpenStreetMap (Nominatim per gli indirizzi, Overpass per i supermercati)
 - **[FATTO]** Profilo, posizione e preferiti salvati nel browser (localStorage)
 - **[FATTO]** Pacchetto `apps/scrapers`: adapter per catena, validazione con schema condiviso (`ScrapedOffer`), snapshot JSON in `data/offers/<catena>/latest.json` (comando: `pnpm --filter @salvaspesa/scrapers scrape [catena]`)
-- **[FATTO]** Aggiornamento automatico giornaliero: l'app scrive in `data/tracked.json` le insegne e i negozi Esselunga che segui; lo script `apps/scrapers/scripts/scrape-daily.cmd` (`pnpm --filter @salvaspesa/scrapers scrape:tracked`) li aggiorna e salva lo snapshot del giorno; lo stesso script aggiorna anche i listini completi (`--catalog`), che alimenta lo storico dei prezzi. È pianificato in Windows come attività «SpesaChiara aggiornamento volantini» ogni giorno alle 07:30 (esito in `data/scrape.log`). Per cambiarlo o toglierlo: `schtasks /Delete /TN "SpesaChiara aggiornamento volantini" /F`. Il PC deve essere acceso a quell'ora; se non lo è, i dati si aggiornano comunque alla prima apertura dell'app (dati più vecchi di 6 ore)
-- **[PROSSIMO]** Importare gli snapshot in Postgres (schema già pronto in `apps/backend/prisma`) e collegarli al web
+- **[FATTO]** Aggiornamento automatico giornaliero: l'app scrive in `data/tracked.json` le insegne e i negozi Esselunga che segui; lo script `apps/scrapers/scripts/scrape-daily.cmd` (`pnpm --filter @salvaspesa/scrapers scrape:tracked`) li aggiorna e salva lo snapshot del giorno; lo stesso script aggiorna anche i listini completi (`--catalog`), che alimenta lo storico dei prezzi. È pianificato in Windows come attività «SalvaSpesa aggiornamento volantini» ogni giorno alle 07:30 (esito in `data/scrape.log`). Per cambiarlo o toglierlo: `schtasks /Delete /TN "SalvaSpesa aggiornamento volantini" /F`. Il PC deve essere acceso a quell'ora; se non lo è, i dati si aggiornano comunque alla prima apertura dell'app (dati più vecchi di 6 ore)
 - **[PROSSIMO]** Abbinare le offerte ai prodotti canonici tra catene (EAN dove c'è, altrimenti marca + nome + formato)
-- **[PROSSIMO]** Collegamento web ↔ backend tRPC al posto dei dati dimostrativi
-- **[FUTURO]** App mobile (Expo) sullo stesso backend
+- **[FATTO]** App mobile (Expo) autonoma: scarica e analizza i volantini direttamente sul telefono, senza server
 
 ### Fonti dati per catena (verificate il 20/10/2026)
 | Catena | Stato | Cosa fornisce |
@@ -96,11 +98,12 @@ Legenda stato: **[FATTO]** implementato · **[PROSSIMO]** subito dopo · **[FUTU
 | Gulliver | **[FUTURO]** | Offerte per punto vendita su un'app che richiede la scelta del negozio, volantino digitale a immagini: serve un browser automatico |
 | Carrefour | **[PROSSIMO]** | Volantino generato da un servizio esterno (youroperator): serve capire se espone dati o solo immagini |
 | Conad | **[FATTO, parziale]** ~150 prodotti con prezzo | Spesa online (`spesaonline.conad.it`): il sito mostra il prezzo solo per circa l'8% dei prodotti (come Tigros, serve scegliere un negozio per il resto), senza prezzi barrati. Sono prezzi del negozio online predefinito, che possono differire dal tuo punto vendita. Il volantino (viewer Shopfully, immagini) e il file Excel dei volantini (vietato dal robots.txt del sito) non sono usati |
-| Pam, Coop | **[FUTURO]** | Contenuto caricato via JavaScript o URL diversi per punto vendita: serve un browser automatico (Playwright) |
+| Pam | **[FUTURO]** | Contenuto caricato via JavaScript o URL diversi per punto vendita: serve un browser automatico (Playwright) |
 | Aldi | **[FATTO]** ~500 prodotti (di cui ~80 con prezzo barrato = offerte) | Pagine categoria del sito (`/prodotti/.../k/<id>?page=N`): marca, formato, prezzo, prezzo barrato, €/kg-l, immagine. Aldi non ha un volantino a scadenza fissa online: le offerte sono i prodotti con prezzo barrato, il resto è listino. Esclusi abbigliamento, arredo, stagionali e prodotti «disponibili dal» giorno futuro |
+| Carrefour | **[FATTO]** ~3.000 prodotti in promo nella spesa online (nell'app i 1.200 con lo sconto più alto, minimo 25%); listino completo come catalogo | Pagine reparto di carrefour.it (`/spesa-online/<reparto>/?srule=promo-rank&start=N&sz=100`): marca, formato, prezzo, prezzo di listino, €/kg-l, EAN, immagine e scadenza della promozione. **Sono prezzi della spesa online**, segnalati come tali; molte promo richiedono la carta Payback |
 | MD | **[FUTURO]** | Il sito pubblica solo il volantino come immagini/viewer, nessun elenco prodotti con prezzo leggibile. Riconosciuto sulla mappa e tra i preferiti, ma l'app segnala «non ancora disponibile» |
 | iN's Mercato | **[FUTURO]** | Volantino in un viewer esterno (immagini): nessun dato strutturato. Riconosciuto sulla mappa, segnalato come non disponibile |
-| Coop | **[FUTURO]** | Volantini e prezzi dipendono dalla cooperativa locale e dal punto vendita, caricati via JavaScript: serve un browser automatico. Riconosciuto sulla mappa, segnalato come non disponibile |
+| Coop | **[FATTO, solo Liguria]** ~146 offerte valide oggi | Volantini di Coop Liguria pubblicati da Volantino Più: il negozio preferito si abbina (entro 400 m) all'elenco dei punti vendita, la pagina del negozio rimanda ai PDF dei volantini in corso (PDF con testo, letto con un parser a layout come Ekom). Ogni pagina riporta il proprio periodo («dal 15 al 28 ottobre», «fino al 21 ottobre», sezioni a due settimane): lo scraper tiene solo le offerte valide il giorno in cui gira. Prezzi «solo soci» segnati come tali; le promozioni senza prezzo (es. «20% sui prodotti dei produttori locali») non sono lette. Senza immagini. Le altre cooperative (Lombardia, ecc.) hanno altri canali e non sono ancora collegate |
 | Iper Tosano | **[FUTURO]** | Il sito pubblica solo il volantino a immagini. Riconosciuto sulla mappa (insegna «Iper Tosano»), segnalato come non disponibile |
 | L'Iper | **[FUTURO]** | `volantini.iper.it` usa un servizio di ricerca (Algolia) con chiave pubblica nel codice, ma il nome dell'indice non è esposto e l'elenco indici richiede una chiave amministrativa: non l'ho aggirato. Riconosciuto sulla mappa, segnalato come non disponibile |
 

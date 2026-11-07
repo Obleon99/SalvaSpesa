@@ -56,3 +56,25 @@ export function parseQuantity(...texts: Array<string | null | undefined>): Quant
   }
   return null;
 }
+
+// Promozioni "a multipli" nel testo di un'offerta: 3x2, 2x1, 1+1, "3 per 2", "2° a metà prezzo"… Restituisce un'etichetta breve o null.
+// Il formato di confezione ("2x500 g", "6 x 1 l") non è una promozione: il secondo numero deve essere più piccolo del primo e non avere unità.
+export function detectMultibuy(...texts: (string | null | undefined)[]): string | null {
+  const text = texts.filter(Boolean).join(" ").toLowerCase().replace(/×/g, "x");
+  if (!text) return null;
+  const pair = (a: string, b: string) => (Number(b) >= 1 && Number(a) > Number(b) && Number(a) <= 9 ? `${a}x${b}` : null);
+  let m = text.match(/\b(\d)\s*x\s*(\d)(?![.,]\d)\b(?!\s*(?:\d|g\b|gr\b|kg\b|ml\b|cl\b|l\b|lt\b|pz\b|pezz|capsul|rotol|bustin|buste|conf))/);
+  if (m) return pair(m[1], m[2]) ?? null;
+  m = text.match(/\b(\d)\s*per\s*(\d)\b(?!\s*(?:\d|g\b|kg\b|ml\b|l\b|€|euro))/);
+  if (m && pair(m[1], m[2])) return pair(m[1], m[2]);
+  m = text.match(/\b(\d)\s*al\s*prezzo\s*di\s*(\d)\b/);
+  if (m && pair(m[1], m[2])) return pair(m[1], m[2]);
+  m = text.match(/prendi\s*(\d)\s*(?:e\s*)?paghi\s*(\d)/);
+  if (m && pair(m[1], m[2])) return pair(m[1], m[2]);
+  m = text.match(/\b(\d)\s*\+\s*(\d)\b(?!\s*(?:\d|g\b|kg\b|ml\b|l\b))/);
+  if (m && Number(m[1]) >= 1 && Number(m[2]) >= 1 && Number(m[1]) <= 5 && Number(m[2]) <= 5) return `${m[1]}+${m[2]}`;
+  if (/(?:2\s*[°ºo]|secondo|seconda)\s*(?:prodotto\s*)?(?:a|al)\s*(?:meta|metà|50\s*%)/.test(text) || /secondo\s+(?:a\s+)?meta\s+prezzo/.test(text)) return "2° a metà prezzo";
+  m = text.match(/\b(\d)\s*(?:pezzi|pz)\s*a\s*(\d+(?:[.,]\d+)?)\s*(?:€|euro)/);
+  if (m && Number(m[1]) >= 2) return `${m[1]} pezzi a ${m[2].replace(".", ",")} €`;
+  return null;
+}

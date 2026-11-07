@@ -109,6 +109,7 @@ export const ScrapedOfferSchema = z.object({
   scrapedAt: z.string().datetime(),
   storeCode: z.string().nullish(),
   ean: z.string().nullish(),
+  promoLabel: z.string().nullish(),
   channel: z.enum(["volantino", "online"]).nullish(),
 });
 export type ScrapedOffer = z.infer<typeof ScrapedOfferSchema>;

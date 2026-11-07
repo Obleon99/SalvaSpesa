@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GROUPS } from "@salvaspesa/deal-logic";
 import { Icon } from "./icon";
 import { Modal } from "./modal";
 import { useUserState } from "@/lib/user-state";
@@ -51,6 +52,7 @@ export function ProfileDialog() {
   const [name, setName] = useState(profile.name);
   const [adults, setAdults] = useState(profile.adults);
   const [children, setChildren] = useState(profile.children);
+  const [categories, setCategories] = useState<string[]>(profile.categories);
   const [budget, setBudget] = useState(profile.weeklyBudget === null ? "" : String(profile.weeklyBudget));
 
   const parsedBudget = budget.trim() === "" ? null : Number(budget.replace(",", "."));
@@ -62,6 +64,7 @@ export function ProfileDialog() {
       name: name.trim(),
       adults,
       children,
+      categories,
       weeklyBudget: parsedBudget === null ? null : Math.round(parsedBudget * 100) / 100,
     });
     closeDialog();
@@ -89,6 +92,32 @@ export function ProfileDialog() {
         </span>
         <Stepper label="Adulti" value={adults} min={1} max={8} onChange={setAdults} />
         <Stepper label="Bambini" value={children} min={0} max={8} onChange={setChildren} />
+      </div>
+
+      <div className="flex flex-col gap-space-xs">
+        <span className="font-label-caps text-label-caps text-on-surface-variant uppercase">Categorie che vuoi vedere</span>
+        <div className="flex flex-wrap gap-space-xs" role="group" aria-label="Categorie">
+          {GROUPS.filter((g) => g.id !== "altro").map((g) => {
+            const on = categories.includes(g.id);
+            return (
+              <button
+                key={g.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setCategories((current) => (on ? current.filter((id) => id !== g.id) : [...current, g.id]))}
+                className={`px-space-sm py-1.5 rounded-full font-body-sm text-body-sm flex items-center gap-1 transition-colors ${
+                  on ? "bg-primary text-on-primary font-semibold shadow-sm" : "bg-surface-container-low text-on-surface hover:bg-surface-container"
+                }`}
+              >
+                <Icon name={g.icon} className="text-base" />
+                {g.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="font-body-sm text-body-sm text-on-surface-variant">
+          {categories.length === 0 ? "Nessuna scelta: vedi tutte le categorie." : "Offerte, confronti e ricerca mostreranno solo queste categorie."}
+        </p>
       </div>
 
       <div className="flex flex-col gap-space-xs">

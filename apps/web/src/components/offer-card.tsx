@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Icon } from "./icon";
-import { expiryLabel, daysLeft, formatPrice, formatUnitPrice } from "@/lib/offer-search";
+import { expiryLabel, daysLeft, formatPrice, formatUnitPrice, loyaltyLabel } from "@/lib/offer-search";
 import type { CompareOffer } from "@/lib/use-comparison";
 import { useOfferActions } from "@/lib/use-offer-actions";
 
@@ -24,6 +24,7 @@ export function OfferCard({ offer, onOpen, catalog = false, badges }: Props) {
     <div className="bg-surface-container-lowest rounded-2xl p-space-sm shadow-sm hover:shadow-md transition-shadow flex flex-col gap-space-xs">
       <div className="flex items-center justify-between gap-2">
         <span className="px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-label-unit text-label-unit font-bold truncate">{offer.chainName}</span>
+        {offer.requiresLoyaltyCard ? <span className="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-unit text-label-unit font-bold truncate">{loyaltyLabel(offer)}</span> : null}
         {offer.discountPercent ? (
           <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-unit text-label-unit font-bold shrink-0">-{offer.discountPercent}%</span>
         ) : null}
@@ -57,7 +58,7 @@ export function OfferCard({ offer, onOpen, catalog = false, badges }: Props) {
         <div className={`font-label-unit text-label-unit flex items-center gap-1 ${daysLeft(offer.validTo) <= 2 ? "text-error font-bold" : "text-on-surface-variant"}`}>
           <Icon name="schedule" className="text-sm" />
           {expiryLabel(offer.validTo)}
-          {offer.requiresLoyaltyCard ? <span className="ml-1 text-on-surface-variant font-normal">• con carta</span> : null}
+          {offer.requiresLoyaltyCard ? <span className="ml-1 text-on-surface-variant font-normal">• {loyaltyLabel(offer)}</span> : null}
         </div>
       )}
       <div className="flex items-center gap-space-xs">

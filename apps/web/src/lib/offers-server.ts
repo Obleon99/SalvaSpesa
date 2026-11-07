@@ -12,7 +12,7 @@ const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const SCRAPE_TIMEOUT_MS = 4 * 60 * 1000;
 const CATALOG_TIMEOUT_MS = 15 * 60 * 1000;
 const MAX_STORE_DISTANCE_KM = 1;
-const USER_AGENT = "Mozilla/5.0 (compatible; SpesaChiaraBot/0.1; progetto personale di confronto prezzi)";
+const USER_AGENT = "Mozilla/5.0 (compatible; SalvaSpesaBot/0.1; progetto personale di confronto prezzi)";
 
 const CHAIN_NAMES: Record<string, string> = {
   lidl: "Lidl",
@@ -23,6 +23,8 @@ const CHAIN_NAMES: Record<string, string> = {
   ekom: "Ekom",
   aldi: "Aldi",
   conad: "Conad",
+  coop: "Coop",
+  carrefour: "Carrefour",
 };
 
 export const CHAIN_DISPLAY_NAMES = CHAIN_NAMES;
@@ -143,9 +145,46 @@ async function resolveEkom(favorite: FavoriteRef): Promise<Resolution> {
   }
 }
 
+// Coop Liguria: Volantino Più elenca i punti vendita con la pagina del loro volantino. Il negozio preferito si abbina al più vicino (entro 400 m).
+const COOP_LOCATOR_URL = "https://negozi.volantinopiu.com/public/ajax/get.maps.php";
+const COOP_MAX_DISTANCE_KM = 0.4;
+const coopCache = new Map<string, { at: number; code: string | null }>();
+
+async function resolveCoop(favorite: FavoriteRef): Promise<Resolution> {
+  const key = `${favorite.lat.toFixed(4)},${favorite.lng.toFixed(4)}`;
+  const cached = coopCache.get(key);
+  if (cached && Date.now() - cached.at < 24 * 60 * 60 * 1000) {
+    return cached.code ? { kind: "store", code: cached.code } : coopUnsupported;
+  }
+  try {
+    const response = await fetch(COOP_LOCATOR_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "User-Agent": USER_AGENT },
+      body: JSON.stringify({ id_canale: "15", id_subcanale: "16", tipo: "punti_vendita", lat: favorite.lat, lng: favorite.lng, allowed: 1, uri: "/coopliguria.html", landing: "coopliguria" }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = (await response.json()) as { points?: { Latitude: string; Longitude: string; landing?: string }[] };
+    let best: { km: number; code: string } | null = null;
+    for (const point of data.points ?? []) {
+      const code = point.landing?.match(/ccno-(\d+)\.html/)?.[1];
+      const km = haversineKm(favorite, { lat: Number(point.Latitude), lng: Number(point.Longitude) });
+      if (code && Number.isFinite(km) && (!best || km < best.km)) best = { km, code };
+    }
+    const code = best && best.km <= COOP_MAX_DISTANCE_KM ? best.code : null;
+    coopCache.set(key, { at: Date.now(), code });
+    return code ? { kind: "store", code } : coopUnsupported;
+  } catch {
+    return { kind: "skip", status: "unresolved", note: "Non riesco a leggere i volantini Coop in questo momento" };
+  }
+}
+
+const coopUnsupported: Resolution = { kind: "skip", status: "unsupported", note: "Non trovo questo punto vendita tra quelli con volantino online (per ora solo Coop Liguria)" };
+
 const RESOLVERS: Record<string, (favorite: FavoriteRef) => Promise<Resolution>> = {
   esselunga: resolveEsselunga,
   ekom: resolveEkom,
+  coop: resolveCoop,
 };
 
 const snapshotDir = (chainId: string, storeCode?: string) => path.join(DATA_DIR, chainId, storeCode ?? "");
@@ -169,7 +208,7 @@ export function runScraper(chainId: string, storeCodes: string[], catalog = fals
   if (running) return running;
 
   const job = new Promise<boolean>((resolve) => {
-    const env = { ...process.env, ...(chainId === "esselunga" && storeCodes.length > 0 ? { ESSELUNGA_STORES: storeCodes.join(",") } : {}) };
+    const env = { ...process.env, ...(chainId === "esselunga" && storeCodes.length > 0 ? { ESSELUNGA_STORES: storeCodes.join(",") } : {}), ...(chainId === "coop" && storeCodes.length > 0 ? { COOP_STORES: storeCodes.join(",") } : {}) };
     const child = spawn(process.execPath, [TSX_CLI, "src/run.ts", chainId, ...(catalog ? ["--catalog"] : [])], {
       cwd: SCRAPERS_DIR,
       env,
@@ -192,12 +231,12 @@ export function runScraper(chainId: string, storeCodes: string[], catalog = fals
 }
 
 // Registra quali insegne e negozi segue l'utente: lo script di aggiornamento giornaliero legge questo file.
-async function trackSelection(chains: string[], esselungaCodes: string[]): Promise<void> {
+async function trackSelection(chains: string[], esselungaCodes: string[], coopCodes: string[]): Promise<void> {
   try {
     await mkdir(DATA_DIR, { recursive: true });
     await writeFile(
       path.resolve(DATA_DIR, "../tracked.json"),
-      JSON.stringify({ updatedAt: new Date().toISOString(), chains: [...new Set(chains)].sort(), esselunga: [...new Set(esselungaCodes)].sort().slice(0, 20) }, null, 2),
+      JSON.stringify({ updatedAt: new Date().toISOString(), chains: [...new Set(chains)].sort(), esselunga: [...new Set(esselungaCodes)].sort().slice(0, 20), coop: [...new Set(coopCodes)].sort().slice(0, 20) }, null, 2),
     );
   } catch {
     // il tracciamento è facoltativo: senza, l'aggiornamento giornaliero usa i valori predefiniti
@@ -210,6 +249,7 @@ export async function getOffersForFavorites(favorites: FavoriteRef[]): Promise<O
   const scrapedTimes: string[] = [];
   const trackedChains: string[] = [];
   const trackedEsselunga: string[] = [];
+  const trackedCoop: string[] = [];
 
   const byChain = new Map<string, FavoriteRef[]>();
   for (const favorite of favorites) byChain.set(favorite.chainId, [...(byChain.get(favorite.chainId) ?? []), favorite]);
@@ -239,6 +279,7 @@ export async function getOffersForFavorites(favorites: FavoriteRef[]): Promise<O
     }
 
     if (targets.size > 0) trackedChains.push(chainId);
+    if (chainId === "coop") trackedCoop.push(...[...targets.values()].map((t) => t.storeCode).filter((c): c is string => Boolean(c)));
     if (chainId === "esselunga") trackedEsselunga.push(...[...targets.values()].map((t) => t.storeCode).filter((c): c is string => Boolean(c)));
 
     const snapshots = new Map<string, Snapshot | null>();
@@ -274,12 +315,35 @@ export async function getOffersForFavorites(favorites: FavoriteRef[]): Promise<O
     }
   }
 
-  await trackSelection(trackedChains, trackedEsselunga);
+  await trackSelection(trackedChains, trackedEsselunga, trackedCoop);
   scrapedTimes.sort();
   return { generatedAt: scrapedTimes[0] ?? null, offers, sources };
 }
 
+const HISTORY_DIR = path.resolve(process.cwd(), "../../data/history");
+
+// Storico compatto scritto dagli scraper (un punto a ogni cambio di prezzo, "seen" = ultimo giorno visto).
+async function compactHistory(chainId: string, externalId: string, storeCode: string | undefined, days: number): Promise<HistoryPoint[] | null> {
+  try {
+    const file = JSON.parse(await readFile(path.join(HISTORY_DIR, chainId, `${storeCode || "all"}.json`), "utf8")) as Record<string, { p: [string, number, number | null][]; seen: string }>;
+    const entry = file[externalId];
+    if (!entry) return [];
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const points: HistoryPoint[] = entry.p.map(([date, price, originalPrice]) => ({ date, price, originalPrice }));
+    const last = points[points.length - 1];
+    if (last && entry.seen > last.date) points.push({ ...last, date: entry.seen });
+    // Il punto precedente alla finestra tiene il prezzo valido all'inizio del periodo.
+    const inside = points.filter((point) => point.date >= cutoff);
+    const before = points.filter((point) => point.date < cutoff).pop();
+    return before && inside[0]?.date !== cutoff ? [{ ...before, date: cutoff }, ...inside] : inside;
+  } catch {
+    return null;
+  }
+}
+
 export async function getHistory(chainId: string, externalId: string, storeCode?: string, days = 30): Promise<HistoryPoint[]> {
+  const compact = await compactHistory(chainId, externalId, storeCode, days);
+  if (compact) return compact;
   let files: string[];
   try {
     files = (await readdir(snapshotDir(chainId, storeCode))).filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort();

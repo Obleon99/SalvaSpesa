@@ -1,6 +1,7 @@
 {
   "name": "salvaspesa",
   "private": true,
+  "author": "Obleon",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
     "build": "turbo run build",

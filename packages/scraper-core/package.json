@@ -1,0 +1,21 @@
+{
+  "name": "@salvaspesa/scraper-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "tsx --test src/parse.test.ts src/ekom-parse.test.ts src/coop-parse.test.ts src/hash.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@salvaspesa/shared-types": "workspace:*",
+    "cheerio": "^1.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { qualityLabels } from "@salvaspesa/deal-logic";
 import { Icon } from "./icon";
 import { Modal } from "./modal";
-import { buildSparkline, expiryLabel, formatDay, formatPrice, formatShortDate, formatUnitPrice } from "@/lib/offer-search";
+import { buildSparkline, expiryLabel, formatDay, formatPrice, formatShortDate, formatUnitPrice, loyaltyLabel } from "@/lib/offer-search";
 import type { HistoryPoint, OfferView } from "@/lib/offers-types";
 import { useOfferActions } from "@/lib/use-offer-actions";
 
@@ -59,7 +59,7 @@ export function ProductModal({ offer, onClose }: { offer: OfferView; onClose: ()
             ) : null}
           </div>
           <div className="flex flex-wrap gap-1 mt-1">
-            {[...badges, ...(offer.requiresLoyaltyCard ? ["Con carta fedeltà"] : []), ...(offer.channel === "online" ? ["Prezzo spesa online"] : [])].map((badge) => (
+            {[...badges, ...(offer.requiresLoyaltyCard ? [`Prezzo ${loyaltyLabel(offer)}`] : []), ...(offer.channel === "online" ? ["Prezzo spesa online"] : [])].map((badge) => (
               <span key={badge} className="px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-label-unit text-label-unit">{badge}</span>
             ))}
           </div>

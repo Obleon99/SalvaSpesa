@@ -51,6 +51,25 @@ export function bestPerChain(offers: OfferView[]): OfferView[] {
   return [...best.values()];
 }
 
+// Nome del programma fedeltà richiesto dalle offerte "con carta" di ogni insegna.
+const LOYALTY_PROGRAMS: Record<string, string> = {
+  esselunga: "Fidaty",
+  lidl: "Lidl Plus",
+  ekom: "Ekom UP",
+  penny: "PENNYCard",
+  tigros: "Tigros Card",
+  eurospin: "Eurospin Family",
+  coop: "Carta Socio Coop",
+  conad: "Carta Insieme",
+  carrefour: "Carta Payback",
+};
+
+export const loyaltyProgram = (chainId: string): string => LOYALTY_PROGRAMS[chainId] ?? "carta fedeltà";
+
+// "con Fidaty", "con Lidl Plus"…; vuoto se l'offerta vale per tutti.
+export const loyaltyLabel = (offer: { chainId: string; requiresLoyaltyCard: boolean }): string | null =>
+  offer.requiresLoyaltyCard ? `con ${loyaltyProgram(offer.chainId)}` : null;
+
 export function daysLeft(validTo: string, now = Date.now()): number {
   return Math.ceil((Date.parse(validTo) - now) / DAY_MS);
 }

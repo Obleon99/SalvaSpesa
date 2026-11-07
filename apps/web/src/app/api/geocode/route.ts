@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org";
-const USER_AGENT = "SpesaChiara/0.1 (progetto personale di confronto volantini)";
+const USER_AGENT = "SalvaSpesa/0.1 (progetto personale di confronto volantini)";
 
 interface NominatimResult {
   lat: string;

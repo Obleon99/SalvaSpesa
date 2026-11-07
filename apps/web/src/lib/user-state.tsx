@@ -18,10 +18,20 @@ export interface UserProfile {
   adults: number;
   children: number;
   weeklyBudget: number | null;
+  // Categorie di prodotti che si vogliono vedere (id dei gruppi): vuoto = tutte.
+  categories: string[];
 }
 
 export type StoresStatus = "idle" | "loading" | "error";
-export type DialogName = "location" | "profile" | null;
+export type DialogName = "location" | "profile" | "auth" | null;
+
+export interface Account {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export type AuthResult = { ok: true } | { ok: false; error: string };
 
 interface StoresMeta {
   key: string;
@@ -118,6 +128,10 @@ interface UserState {
   markNotificationsSeen: (ids: string[]) => void;
   reports: PriceReport[];
   addReport: (report: Omit<PriceReport, "id" | "createdAt">) => void;
+  account: Account | null;
+  accountReady: boolean;
+  signIn: (mode: "login" | "register", email: string, password: string, name?: string) => Promise<AuthResult>;
+  signOut: () => Promise<void>;
   dialog: DialogName;
   openDialog: (dialog: Exclude<DialogName, null>) => void;
   closeDialog: () => void;
@@ -126,7 +140,7 @@ interface UserState {
 const STORAGE_KEY = "salvaspesa:v1";
 const STORES_CACHE_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_RADIUS_KM = 5;
-const DEFAULT_PROFILE: UserProfile = { name: "", adults: 2, children: 0, weeklyBudget: null };
+const DEFAULT_PROFILE: UserProfile = { name: "", adults: 2, children: 0, weeklyBudget: null, categories: [] };
 
 const UserStateContext = createContext<UserState | null>(null);
 
@@ -136,6 +150,36 @@ function loadPersisted(): Partial<PersistedState> {
     return raw ? (JSON.parse(raw) as Partial<PersistedState>) : {};
   } catch {
     return {};
+  }
+}
+
+function snapshotOf(persisted: Partial<PersistedState>): PersistedState {
+  return {
+    profile: { ...DEFAULT_PROFILE, ...persisted.profile },
+    location: persisted.location ?? null,
+    radiusKm: persisted.radiusKm ?? DEFAULT_RADIUS_KM,
+    favorites: persisted.favorites ?? [],
+    stores: [],
+    storesMeta: null,
+    cart: persisted.cart ?? [],
+    alerts: persisted.alerts ?? [],
+    savedProducts: persisted.savedProducts ?? [],
+    seenNotifications: persisted.seenNotifications ?? [],
+    reports: persisted.reports ?? [],
+  };
+}
+
+async function pushState(state: PersistedState): Promise<void> {
+  // L'elenco dei negozi vicini si ricalcola dalla posizione: non serve salvarlo nell'account.
+  const { stores: _stores, storesMeta: _meta, ...rest } = state;
+  try {
+    await fetch("/api/account/state", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: rest }),
+    });
+  } catch {
+    // al prossimo cambiamento si riprova
   }
 }
 
@@ -167,7 +211,46 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
   const [savedProducts, setSavedProducts] = useState<SavedProduct[]>([]);
   const [seenNotifications, setSeenNotifications] = useState<string[]>([]);
   const [reports, setReports] = useState<PriceReport[]>([]);
+  const [account, setAccount] = useState<Account | null>(null);
+  const [accountReady, setAccountReady] = useState(false);
   const storesMetaRef = useRef<StoresMeta | null>(null);
+  const syncedRef = useRef(false);
+
+  const applyPersisted = useCallback((persisted: Partial<PersistedState>) => {
+    setProfileState({ ...DEFAULT_PROFILE, ...persisted.profile });
+    setLocationState(persisted.location ?? null);
+    setRadiusKm(persisted.radiusKm ?? DEFAULT_RADIUS_KM);
+    setFavoriteRaw(persisted.favorites ?? []);
+    setCart(persisted.cart ?? []);
+    setAlerts(persisted.alerts ?? []);
+    setSavedProducts(persisted.savedProducts ?? []);
+    setSeenNotifications(persisted.seenNotifications ?? []);
+    setReports(persisted.reports ?? []);
+  }, []);
+
+  // Dopo l'accesso i dati dell'account sostituiscono quelli del browser; se l'account è nuovo si salvano quelli attuali.
+  const syncFromServer = useCallback(
+    async (current: PersistedState) => {
+      try {
+        const response = await fetch("/api/account/state");
+        if (!response.ok) return;
+        const { state } = (await response.json()) as { state: Partial<PersistedState> | null };
+        if (state) {
+          applyPersisted(state);
+          storesMetaRef.current = null;
+          setRawStores([]);
+          setRefreshToken((token) => token + 1);
+        } else {
+          await pushState(current);
+        }
+      } catch {
+        // offline: si continua con i dati locali
+      } finally {
+        syncedRef.current = true;
+      }
+    },
+    [applyPersisted],
+  );
 
   useEffect(() => {
     const persisted = loadPersisted();
@@ -183,6 +266,18 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
     if (persisted.reports) setReports(persisted.reports);
     storesMetaRef.current = persisted.storesMeta ?? null;
     setReady(true);
+
+    fetch("/api/auth/me")
+      .then((response) => (response.ok ? (response.json() as Promise<{ account: Account | null }>) : { account: null }))
+      .then(async ({ account: me }) => {
+        if (me) {
+          setAccount(me);
+          await syncFromServer(snapshotOf(persisted));
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => setAccountReady(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const locationKey = location ? `${location.lat.toFixed(3)},${location.lng.toFixed(3)},${radiusKm}` : null;
@@ -234,7 +329,11 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
     } catch {
       // storage pieno o non disponibile: i dati restano solo in memoria
     }
-  }, [ready, profile, location, radiusKm, favoriteRaw, rawStores, storesStatus, cart, alerts, savedProducts, seenNotifications, reports]);
+    if (!account || !syncedRef.current) return;
+    const timer = setTimeout(() => void pushState(state), 1200);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account, ready, profile, location, radiusKm, favoriteRaw, rawStores, storesStatus, cart, alerts, savedProducts, seenNotifications, reports]);
 
   const favoritesKey = favoriteRaw.map((s) => s.id).sort().join("|");
 
@@ -335,6 +434,58 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
     setReports((current) => [...current, { ...report, id: `r${Date.now()}`, createdAt: Date.now() }].slice(-100));
   }, []);
 
+  const signIn = useCallback(
+    async (mode: "login" | "register", email: string, password: string, name?: string): Promise<AuthResult> => {
+      try {
+        const response = await fetch(`/api/auth/${mode}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, name }),
+        });
+        const data = (await response.json()) as { account?: Account; error?: string };
+        if (!response.ok || !data.account) return { ok: false, error: data.error ?? "Accesso non riuscito" };
+        syncedRef.current = false;
+        setAccount(data.account);
+        await syncFromServer({
+          profile: { ...profile, name: profile.name || name || "" },
+          location,
+          radiusKm,
+          favorites: favoriteRaw,
+          stores: [],
+          storesMeta: null,
+          cart,
+          alerts,
+          savedProducts,
+          seenNotifications,
+          reports,
+        });
+        return { ok: true };
+      } catch {
+        return { ok: false, error: "Server non raggiungibile, riprova" };
+      }
+    },
+    [syncFromServer, profile, location, radiusKm, favoriteRaw, cart, alerts, savedProducts, seenNotifications, reports],
+  );
+
+  // All'uscita il browser torna vuoto: su un computer condiviso non restano i dati dell'account.
+  const signOut = useCallback(async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // la sessione scade comunque da sola
+    }
+    syncedRef.current = false;
+    setAccount(null);
+    applyPersisted({});
+    setRawStores([]);
+    storesMetaRef.current = null;
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // niente da pulire
+    }
+  }, [applyPersisted]);
+
   const openDialog = useCallback((name: Exclude<DialogName, null>) => setDialog(name), []);
   const closeDialog = useCallback(() => setDialog(null), []);
 
@@ -369,6 +520,10 @@ export function UserStateProvider({ children }: { children: ReactNode }) {
     markNotificationsSeen,
     reports,
     addReport,
+    account,
+    accountReady,
+    signIn,
+    signOut,
     dialog,
     openDialog,
     closeDialog,
