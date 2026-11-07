@@ -163,7 +163,7 @@ interface Rule {
 
 const match = (haystack: string, term: string): boolean => (term.startsWith("=") ? hasWholeTerm(haystack, term.slice(1)) : hasTerm(haystack, term));
 
-const PET = ["gatto", "gatti", "cane", "cani", "crocchett", "felix", "purina", "whiskas", "sheba", "=cesar", "kitekat", "pedigree", "friskies", "schesir", "monge", "animonda", "lettiera", "=cat", "dog food", "gourmet gold", "gourmet perle", "gourmet a la carte", "gourmet soup", "mon petit", "migliorcane", "migliorgatto", "vitakraft", "dreamies", "perfect fit", "bonzo", "=ultima", "animali", "adoc", "romeo", "almo nature", "marpet", "bifensis", "hairball", "urinary", "croccantini", "cibo umido", "cibo secco", "=chat", "lechat", "gemon", "affinity", "exclusion", "kitten", "gattin", "cucciol", "lindocat", "natural trainer", "royal canin", "pro plan", "hill s", "applaws", "bocconcini per", "per cani", "per gatti", "migliorcane"];
+const PET = ["gatto", "gatti", "cane", "cani", "crocchett", "felix", "purina", "whiskas", "sheba", "=cesar", "kitekat", "pedigree", "friskies", "schesir", "monge", "animonda", "lettiera", "=cat", "dog food", "gourmet gold", "gourmet perle", "gourmet a la carte", "gourmet soup", "mon petit", "migliorcane", "migliorgatto", "vitakraft", "dreamies", "perfect fit", "bonzo", "=ultima", "animali", "adoc", "romeo", "almo nature", "marpet", "bifensis", "hairball", "urinary", "croccantini", "cibo umido", "cibo secco", "=chat", "lechat", "gemon", "affinity", "exclusion", "kitten", "gattin", "cucciol", "lindocat", "natural trainer", "royal canin", "pro plan", "hill s", "applaws", "bocconcini per", "per cani", "per gatti", "migliorcane", "cat chow", "dog chow", "sensations", "frolic", "winston", "dentastix", "pedigree", "rinti", "trixie", "ferplast", "carnilove", "edgard", "naturalpet", "specific", "ghoster", "shiny cat", "my cat", "my dog", "meowing", "mangime", "=pet", "nutrition cat", "nutrition dog", "adult cat", "adult dog", "puppy", "senior cat"];
 const FROZEN_TERMS = ["surgelat", "congelat", "frozen", "findus", "4 salti", "orogel", "bofrost", "frosta", "igloo"];
 const CANNED_TERMS = ["scatola", "sott olio", "sott aceto", "barattolo", "sgocciolat", "in conserva", "al naturale", "all olio", "in olio", "vasetto", "affumicat", "essiccat", "secco", "secca", "stagionat", "sottaceto", "sottolio", "in latta", "latta"];
 
@@ -270,6 +270,9 @@ const CATEGORY_HINTS: { group: GroupId; sub: string; pattern: RegExp }[] = [
 export function classifyProduct(product: { name: string; brand?: string | null; category?: string | null; packageText?: string | null }): Classification {
   const haystack = normalizeText(`${product.brand ?? ""} ${product.name}`);
   const categoryText = normalizeText(product.category ?? "");
+
+  // Il reparto "animali/pet" dei volantini vale più di qualsiasi parola nel nome.
+  if (/animal|pet|cani|gatti|petcare/.test(categoryText)) return { group: "animali", sub: "cani", storage: null };
 
   const frozen = FROZEN_TERMS.some((term) => hasTerm(haystack, term)) || /surgelat|freezer|frozen/.test(categoryText);
   const canned = CANNED_TERMS.some((term) => hasTerm(haystack, term));

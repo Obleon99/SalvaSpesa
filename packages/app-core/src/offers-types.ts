@@ -28,6 +28,8 @@ export interface SourceInfo {
   offerCount: number;
   scrapedAt: string | null;
   storeCode: string | null;
+  // Fine di validità più lontana tra le offerte in cache (serve a capire quando i volantini sono scaduti).
+  validUntil?: string | null;
   note?: string;
 }
 

@@ -28,7 +28,7 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("it-IT", { hour: 
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const { profile, favorites, data, loading, updating, progress, location, refresh } = useApp();
+  const { profile, favorites, data, loading, updating, progress, needsUpdate, location, refresh } = useApp();
   const offers = useVisibleOffers();
   const best = useMemo(() => offers.filter((o) => o.discountPercent != null).slice(0, 10), [offers]);
   const chains = useMemo(() => new Set(offers.map((o) => o.chainName)).size, [offers]);
@@ -48,6 +48,15 @@ export default function Home() {
             {busy ? progress || "Preparo le offerte…" : data?.generatedAt ? `Aggiornate alle ${time(data.generatedAt)}` : "Nessun aggiornamento ancora"}
           </Text>
         </View>
+        {needsUpdate && !busy && (
+          <Pressable style={styles.update} onPress={() => void refresh(true)} accessibilityRole="button" accessibilityLabel="Aggiorna le offerte">
+            <Icon name="refresh" size={16} color={colors.primary} />
+            <Text style={styles.updateText}>Aggiornamento</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>!</Text>
+            </View>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.stats}>
@@ -131,6 +140,10 @@ function Stat({ icon, value, label }: { icon: IconName; value: string; label: st
 }
 
 const styles = StyleSheet.create({
+  update: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12, backgroundColor: "#fff", borderRadius: 999, paddingVertical: 8, paddingLeft: 14, paddingRight: 10 },
+  updateText: { color: colors.primary, fontWeight: "700", fontSize: 14 },
+  badge: { width: 20, height: 20, borderRadius: 10, backgroundColor: "#dc2626", alignItems: "center", justifyContent: "center" },
+  badgeText: { color: "#fff", fontWeight: "800", fontSize: 13, lineHeight: 16 },
   screen: { flex: 1, backgroundColor: colors.bg },
   hero: { backgroundColor: colors.primary, paddingHorizontal: 20, paddingBottom: 56, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, gap: 6 },
   heroTitle: { color: "#fff", fontSize: 26, fontWeight: "800" },

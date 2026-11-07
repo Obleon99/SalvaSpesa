@@ -254,7 +254,9 @@ async function loadChain(chainId: string, favorites: FavoriteRef[], storage: Sna
   const now = Date.now();
   for (const [code, group] of targets) {
     const snapshot = snapshots.get(code) ?? null;
-    const status = snapshot ? (isFresh(snapshot, Math.max(maxAge, options.force ? forceMin : 0)) || options.cacheOnly ? "ok" : "stale") : "error";
+    // Dalla sola cache non si va in rete: i dati restano "ok" finché almeno un'offerta è ancora valida, poi serve un aggiornamento.
+    const status = snapshot ? (options.cacheOnly ? (hasValidOffers(snapshot) ? "ok" : "stale") : isFresh(snapshot, Math.max(maxAge, options.force ? forceMin : 0)) ? "ok" : "stale") : "error";
+    const validUntil = snapshot ? snapshot.offers.reduce((max, o) => (o.validTo > max ? o.validTo : max), "") || null : null;
     const checked = snapshot ? (snapshot.checkedAt ?? snapshot.scrapedAt) : null;
     for (const f of group) {
       result.sources.push({
@@ -266,6 +268,7 @@ async function loadChain(chainId: string, favorites: FavoriteRef[], storage: Sna
         offerCount: snapshot?.offers.length ?? 0,
         scrapedAt: checked,
         storeCode: code || null,
+        validUntil,
         note: status !== "ok" && failure ? failure : undefined,
       });
     }
@@ -296,6 +299,19 @@ async function enforceBudget(storage: SnapshotStorage, keep: Set<string>): Promi
         at = 0;
       }
       orphans.push({ ...f, at });
+    }
+    // Se si è ancora oltre il limite, si tolgono per primi gli snapshot ormai scaduti anche dei negozi preferiti.
+    if (total > STORAGE_BUDGET_BYTES) {
+      for (const f of files) {
+        if (!keep.has(f.key) || total <= STORAGE_BUDGET_BYTES) continue;
+        const raw = await storage.read(f.key);
+        try {
+          if (raw && !hasValidOffers(JSON.parse(raw) as Snapshot)) {
+            await storage.remove(f.key);
+            total -= f.size;
+          }
+        } catch {}
+      }
     }
     orphans.sort((a, b) => a.at - b.at);
     for (const orphan of orphans) {

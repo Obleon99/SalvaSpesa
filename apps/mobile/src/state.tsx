@@ -35,6 +35,8 @@ interface AppState extends Persisted {
   // Aggiornamento in corso in secondo piano (i dati già presenti restano visibili).
   updating: boolean;
   progress: string;
+  // Vero quando le offerte in cache sono scadute o mancano: la home propone l'aggiornamento manuale.
+  needsUpdate: boolean;
   toggleFavorite: (store: FavoriteRef) => void;
   toggleCategory: (id: string) => void;
   setProfile: (profile: Profile) => void;
@@ -62,6 +64,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const again = useRef(false);
   const latest = useRef<(force?: boolean, cacheOnly?: boolean, background?: boolean) => Promise<void>>(async () => undefined);
   const previous = useRef<FavoriteRef[]>([]);
+  const started = useRef(false);
 
   useEffect(() => {
     readText(STATE_KEY).then((raw) => {
@@ -126,17 +129,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const before = previous.current;
     previous.current = persisted.favorites;
     const onlyRemoved = before.length > 0 && persisted.favorites.every((f) => before.some((p) => p.id === f.id));
-    // Aggiungere un preferito non scarica subito: si aspetta che l'utente smetta di toccare lo schermo e si lavora in silenzio.
-    // Al primo avvio dell'app (nessun dato ancora) si parte invece senza attese.
-    const first = before.length === 0 && !data;
+    // All'apertura dell'app si mostra solo ciò che è in cache, senza rete: l'aggiornamento lo decide l'utente dalla home.
+    // Togliere un preferito non usa la rete. Aggiungerne uno scarica in silenzio solo i dati di quel negozio, dopo una pausa.
+    const opening = !started.current;
+    started.current = true;
     const timer = setTimeout(
       () => {
-        void refresh(false, onlyRemoved, !first);
+        void refresh(false, opening || onlyRemoved, !opening && !onlyRemoved);
       },
-      onlyRemoved ? 0 : first ? 900 : 4000,
+      opening || onlyRemoved ? 0 : 4000,
     );
     return () => clearTimeout(timer);
   }, [ready, refresh, persisted.favorites]);
+
+  // Le offerte restano in cache con la loro scadenza: se un negozio non ha più offerte valide serve aggiornare.
+  const needsUpdate = useMemo(() => {
+    if (!ready || !data || persisted.favorites.length === 0) return false;
+    const now = Date.now();
+    return persisted.favorites.some((f) => {
+      const source = data.sources.find((s) => s.storeId === f.id);
+      if (!source || (source.status === "unsupported" || source.status === "unresolved")) return false;
+      return source.status !== "ok" || !source.validUntil || Date.parse(source.validUntil) < now;
+    });
+  }, [ready, data, persisted.favorites]);
 
   const value = useMemo<AppState>(
     () => ({
@@ -146,6 +161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loading,
       updating,
       progress,
+      needsUpdate,
       refresh,
       toggleFavorite: (store) => {
         // Lo stesso negozio può comparire due volte su OpenStreetMap (punto e edificio): si considera uno solo.
@@ -163,7 +179,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleCategory: (id) =>
         update({ ...persisted, categories: persisted.categories.includes(id) ? persisted.categories.filter((c) => c !== id) : [...persisted.categories, id] }),
     }),
-    [persisted, ready, data, loading, updating, progress, refresh, update],
+    [persisted, ready, data, loading, updating, progress, needsUpdate, refresh, update],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
