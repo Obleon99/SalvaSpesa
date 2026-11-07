@@ -1,5 +1,5 @@
 import { memo, useDeferredValue, useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { classifyProduct, normalizeText } from "@salvaspesa/deal-logic";
 import { ChainLogo } from "../chain-logo";
 import { Icon } from "../icons";
@@ -18,6 +18,7 @@ export default function Lista() {
   const { matches } = useListMatches();
   const prepared = usePrepared();
   const [text, setText] = useState("");
+  const [open, setOpen] = useState(false);
   const deferred = useDeferredValue(text);
   const total = listTotal(list);
 
@@ -42,6 +43,7 @@ export default function Lista() {
   const toggleChain = (id: string) => setListFilters({ ...listFilters, chains: listFilters.chains.includes(id) ? listFilters.chains.filter((c) => c !== id) : [...listFilters.chains, id] });
 
   const bestFor = useMemo(() => new Map(matches.map((m) => [m.item.id, m.offers[0]])), [matches]);
+  const activeFilters = (listFilters.maxPrice !== null ? 1 : 0) + (listFilters.chains.length > 0 ? 1 : 0);
   const doneCount = list.filter((item) => item.done).length;
 
   const addText = () => {
@@ -65,31 +67,37 @@ export default function Lista() {
           onSubmitEditing={addText}
           autoCorrect={false}
         />
+        <Pressable style={[styles.filterButton, activeFilters > 0 && styles.filterButtonOn]} onPress={() => setOpen((v) => !v)} accessibilityRole="button" accessibilityLabel="Filtri">
+          <Icon name="filter" size={18} color={activeFilters > 0 ? "#fff" : colors.primary} />
+          <Text style={[styles.filterButtonText, activeFilters > 0 && { color: "#fff" }]}>{activeFilters > 0 ? `Filtri (${activeFilters})` : "Filtri"}</Text>
+        </Pressable>
         <Pressable style={[styles.addButton, text.trim().length < 2 && { opacity: 0.4 }]} onPress={addText} disabled={text.trim().length < 2}>
           <Icon name="plus" size={20} color="#fff" />
         </Pressable>
       </View>
 
-      <View style={styles.filters}>
-        <Text style={styles.filterLabel}>Prezzo massimo</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} keyboardShouldPersistTaps="handled">
-          <Chip label="Qualsiasi" on={listFilters.maxPrice === null} onPress={() => setListFilters({ ...listFilters, maxPrice: null })} />
-          {PRICE_STEPS.map((step) => (
-            <Chip key={step} label={`Fino a ${euro(step)}`} on={listFilters.maxPrice === step} onPress={() => setListFilters({ ...listFilters, maxPrice: listFilters.maxPrice === step ? null : step })} />
-          ))}
-        </ScrollView>
-        {chainOptions.length > 1 && (
-          <>
-            <Text style={styles.filterLabel}>Supermercati</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} keyboardShouldPersistTaps="handled">
+      {open && (
+        <View style={styles.filters}>
+          <Text style={styles.filterLabel}>Prezzo massimo</Text>
+          <View style={styles.chipRow}>
+            <Chip label="Qualsiasi" on={listFilters.maxPrice === null} onPress={() => setListFilters({ ...listFilters, maxPrice: null })} />
+            {PRICE_STEPS.map((step) => (
+              <Chip key={step} label={`Fino a ${euro(step)}`} on={listFilters.maxPrice === step} onPress={() => setListFilters({ ...listFilters, maxPrice: listFilters.maxPrice === step ? null : step })} />
+            ))}
+          </View>
+          <Text style={styles.filterLabel}>Supermercati</Text>
+          {chainOptions.length > 0 ? (
+            <View style={styles.chipRow}>
               <Chip label="Tutti" on={listFilters.chains.length === 0} onPress={() => setListFilters({ ...listFilters, chains: [] })} />
               {chainOptions.map(([id, name]) => (
                 <Chip key={id} label={name} on={listFilters.chains.includes(id)} onPress={() => toggleChain(id)} />
               ))}
-            </ScrollView>
-          </>
-        )}
-      </View>
+            </View>
+          ) : (
+            <Text style={styles.noteMuted}>Aggiungi dei supermercati preferiti in «La mia zona» per sceglierli qui.</Text>
+          )}
+        </View>
+      )}
 
       {suggestions.length > 0 && (
         <View style={styles.suggestions}>
@@ -230,9 +238,12 @@ const styles = StyleSheet.create({
   budgetNote: { flexDirection: "row", alignItems: "center", gap: 6 },
   noteText: { fontWeight: "700", fontSize: 13 },
   noteMuted: { color: colors.muted, fontSize: 12 },
-  filters: { marginBottom: 6, gap: 2 },
+  filters: { marginHorizontal: 0, marginBottom: 8, paddingVertical: 8, gap: 2, backgroundColor: colors.card, borderRadius: radius.md, marginLeft: 14, marginRight: 14, ...shadow },
   filterLabel: { marginHorizontal: 14, marginTop: 4, color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
-  chipRow: { paddingHorizontal: 14, paddingVertical: 4, gap: 8 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 14, paddingVertical: 4, gap: 8 },
+  filterButton: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, height: 44, borderRadius: 22, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.primary },
+  filterButtonOn: { backgroundColor: colors.primary },
+  filterButtonText: { color: colors.primary, fontWeight: "700", fontSize: 14 },
   addBox: { flexDirection: "row", gap: 8, marginHorizontal: 14, marginBottom: 6 },
   input: { flex: 1, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.pill, backgroundColor: colors.card, color: colors.text, fontSize: 15, ...shadow },
   addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
