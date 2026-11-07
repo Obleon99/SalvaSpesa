@@ -15,6 +15,7 @@ type Name =
   | "list"
   | "refresh"
   | "locate"
+  | "gps"
   | "cart"
   | "users"
   | "wallet"
@@ -96,6 +97,16 @@ const SHAPES: Record<Name, ReactElement> = {
     </>
   ),
   locate: <Polygon points="3 11 22 2 13 21 11 13 3 11" />,
+  gps: (
+    <>
+      <Circle cx="12" cy="12" r="7" />
+      <Circle cx="12" cy="12" r="2.5" />
+      <Line x1="12" y1="1" x2="12" y2="5" />
+      <Line x1="12" y1="19" x2="12" y2="23" />
+      <Line x1="1" y1="12" x2="5" y2="12" />
+      <Line x1="19" y1="12" x2="23" y2="12" />
+    </>
+  ),
   cart: (
     <>
       <Circle cx="9" cy="21" r="1" />

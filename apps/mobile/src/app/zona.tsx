@@ -75,22 +75,27 @@ export default function Zona() {
   // e se i dati sono vecchi si aggiornano in silenzio.
   const restored = useRef(false);
   useEffect(() => {
-    if (!ready || restored.current || !location) return;
+    if (!ready || restored.current) return;
     restored.current = true;
-    const point = { lat: location.lat, lng: location.lng };
     void readText(NEARBY_KEY).then((raw) => {
       let saved: { at: number; point: LatLng; stores: StoreWithDistance[] } | null = null;
       try {
         saved = raw ? JSON.parse(raw) : null;
       } catch {}
-      if (saved && haversineKm(saved.point, point) < 1 && saved.stores.length > 0) {
+      // Si riparte dall'ultima zona guardata (città cercata o posizione): nessun accesso al GPS all'apertura.
+      if (saved && saved.stores?.length > 0) {
         setSearchCenter(saved.point);
         setMapCenter(saved.point);
         setStores(saved.stores);
         if (Date.now() - saved.at < NEARBY_FRESH_MS) return;
-      } else setSearchCenter(point);
-      const ticket = ++latest.current;
-      void loadAround(point, ticket).catch(() => undefined);
+        const ticket = ++latest.current;
+        void loadAround(saved.point, ticket).catch(() => undefined);
+      } else if (location) {
+        const point = { lat: location.lat, lng: location.lng };
+        setSearchCenter(point);
+        const ticket = ++latest.current;
+        void loadAround(point, ticket).catch(() => undefined);
+      }
     });
   }, [ready, location]);
 
@@ -148,7 +153,7 @@ export default function Zona() {
         Alert.alert("Indirizzo non trovato", "Prova a scrivere via, numero e città (per esempio «Via Roma 10, Genova»).");
         return;
       }
-      setLocation({ lat: place.lat, lng: place.lng, label: place.label });
+      // Cercare una città non usa né sovrascrive la posizione dell'utente: serve solo a guardare quella zona.
       await loadAround({ lat: place.lat, lng: place.lng }, ticket);
     }, "Cerco l'indirizzo…");
 
@@ -169,7 +174,7 @@ export default function Zona() {
           <View style={styles.emptyIcon}>
             <Icon name="map" size={34} color={colors.primary} />
           </View>
-          <Text style={styles.emptyText}>Cerca un indirizzo oppure usa la tua posizione: vedrai i supermercati sulla mappa e potrai scegliere i tuoi preferiti.</Text>
+          <Text style={styles.emptyText}>Cerca un indirizzo o una città, oppure tocca l'icona del GPS per usare la tua posizione: vedrai i supermercati sulla mappa e potrai scegliere i tuoi preferiti.</Text>
         </View>
       )}
 
@@ -186,11 +191,10 @@ export default function Zona() {
           <Pressable style={styles.go} onPress={searchAddress} disabled={busy}>
             {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.goText}>Cerca</Text>}
           </Pressable>
+          <Pressable style={styles.gps} onPress={locate} disabled={busy} accessibilityRole="button" accessibilityLabel="Usa la mia posizione">
+            <Icon name="gps" size={22} color={colors.primary} />
+          </Pressable>
         </View>
-        <Pressable style={styles.chip} onPress={locate} disabled={busy}>
-          <Icon name="locate" size={15} color={colors.primary} />
-          <Text style={styles.chipText}>Usa la mia posizione</Text>
-        </Pressable>
         {busy && status ? (
           <View style={[styles.chip, styles.busyChip]}>
             <ActivityIndicator size="small" color="#1d5fd1" />
@@ -256,6 +260,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: "#f7fbff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
   go: { paddingHorizontal: 18, borderRadius: 12, backgroundColor: "#1d5fd1", alignItems: "center", justifyContent: "center", elevation: 4 },
   goText: { color: "#fff", fontWeight: "700" },
+  gps: { width: 46, borderRadius: 12, backgroundColor: "#f7fbff", borderWidth: 1, borderColor: "#cbd5e1", alignItems: "center", justifyContent: "center", elevation: 4 },
   chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: "#f7fbff", borderWidth: 1, borderColor: "#cbd5e1", elevation: 4 },
   busyChip: { flexDirection: "row", alignItems: "center", gap: 8 },
   chipPrimary: { backgroundColor: "#1d5fd1", borderColor: "#1d5fd1" },
