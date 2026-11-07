@@ -53,6 +53,7 @@ const FLYER_PAGES: Record<string, string> = {
   aldi: "https://www.aldi.it/volantini.html",
   conad: "https://spesaonline.conad.it/offerte",
   ekom: "https://www.ekomdiscount.it/volantini",
+  carrefour: "https://www.carrefour.it/promozioni/",
 };
 
 // Ekom pubblica il PDF del volantino stesso: se l'offerta lo indica si apre quello, il più aggiornato.

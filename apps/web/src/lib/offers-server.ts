@@ -24,6 +24,7 @@ const CHAIN_NAMES: Record<string, string> = {
   aldi: "Aldi",
   conad: "Conad",
   coop: "Coop",
+  carrefour: "Carrefour",
 };
 
 export const CHAIN_DISPLAY_NAMES = CHAIN_NAMES;

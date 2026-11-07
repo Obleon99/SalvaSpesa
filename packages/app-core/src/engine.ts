@@ -32,6 +32,7 @@ export const CHAIN_NAMES: Record<string, string> = {
   aldi: "Aldi",
   conad: "Conad",
   coop: "Coop",
+  carrefour: "Carrefour",
 };
 
 // Pagine leggere che cambiano quando esce un nuovo volantino: se l'impronta è identica si evita di riscaricare tutto.

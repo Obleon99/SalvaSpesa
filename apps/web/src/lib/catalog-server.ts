@@ -10,7 +10,7 @@ const CATALOG_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_RESULTS = 240;
 
 // Insegne di cui riusciamo a leggere il listino prodotti (con prezzo) dal sito pubblico.
-export const CATALOG_CHAINS = new Set(["tigros", "eurospin", "aldi", "conad"]);
+export const CATALOG_CHAINS = new Set(["tigros", "eurospin", "aldi", "conad", "carrefour"]);
 
 export interface Seasonality {
   label: string;

@@ -61,6 +61,7 @@ const LOYALTY_PROGRAMS: Record<string, string> = {
   eurospin: "Eurospin Family",
   coop: "Carta Socio Coop",
   conad: "Carta Insieme",
+  carrefour: "Carta Payback",
 };
 
 export const loyaltyProgram = (chainId: string): string => LOYALTY_PROGRAMS[chainId] ?? "carta fedeltà";
