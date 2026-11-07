@@ -11,3 +11,6 @@ data/
 out/
 *.tsbuildinfo
 next-env.d.ts
+
+# APK compilati in locale
+*.apk
