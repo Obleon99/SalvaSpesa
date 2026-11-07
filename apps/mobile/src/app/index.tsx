@@ -6,7 +6,7 @@ import { offerKey } from "@salvaspesa/app-core";
 import { Icon, type IconName } from "../icons";
 import { MyList } from "../my-list";
 import { OfferTile, euro } from "../offer-views";
-import { useVisibleOffers } from "../offers";
+import { useOffersSettling, useVisibleOffers } from "../offers";
 import { useApp } from "../state";
 import { colors, radius, shadow } from "../theme";
 import { Button, Card, SkeletonTiles, StateMessage } from "../ui";
@@ -32,7 +32,7 @@ export default function Home() {
   const offers = useVisibleOffers();
   const best = useMemo(() => offers.filter((o) => o.discountPercent != null).slice(0, 10), [offers]);
   const chains = useMemo(() => new Set(offers.map((o) => o.chainName)).size, [offers]);
-  const people = profile.adults + profile.children;
+  const settling = useOffersSettling();
   const busy = loading || updating;
   // Motivi per cui un supermercato non ha dato offerte, mostrati solo quando serve capire cosa è andato storto.
   const problems = useMemo(() => {
@@ -77,7 +77,6 @@ export default function Home() {
 
       <Card style={styles.info}>
         <InfoLine icon="pin" text={location ? location.label : "Posizione non impostata"} />
-        <InfoLine icon="users" text={`${people === 1 ? "1 persona" : `${people} persone`} in famiglia`} />
         <InfoLine icon="wallet" text={profile.weeklyBudget != null ? `Soglia settimanale ${euro(profile.weeklyBudget)}` : "Nessuna soglia di spesa impostata"} />
       </Card>
 
@@ -107,6 +106,9 @@ export default function Home() {
           <StateMessage busy title="Sto scaricando le offerte" text={progress ? `${progress}\nCi vorrà un momento, solo la prima volta.` : "Ci vorrà un momento, solo la prima volta."} />
           <SkeletonTiles count={2} />
         </>
+      ) : settling ? (
+        // Le offerte in cache si stanno leggendo: un segnaposto, non il messaggio «nessuna offerta».
+        <SkeletonTiles count={2} />
       ) : favorites.length === 0 ? (
         <StateMessage
           icon="map"

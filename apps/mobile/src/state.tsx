@@ -16,6 +16,13 @@ export interface SavedLocation {
   label: string;
 }
 
+// Filtri della lista della spesa: valgono per suggerimenti, offerte trovate e aggiornamenti.
+export interface ListFilters {
+  maxPrice: number | null;
+  // Vuoto = tutte le insegne.
+  chains: string[];
+}
+
 interface Persisted {
   favorites: FavoriteRef[];
   categories: string[];
@@ -23,9 +30,10 @@ interface Persisted {
   location: SavedLocation | null;
   onboarded: boolean;
   list: ListItem[];
+  listFilters: ListFilters;
 }
 
-const EMPTY: Persisted = { favorites: [], categories: [], profile: { name: "", adults: 1, children: 0, weeklyBudget: null }, location: null, onboarded: false, list: [] };
+const EMPTY: Persisted = { favorites: [], categories: [], profile: { name: "", adults: 1, children: 0, weeklyBudget: null }, location: null, onboarded: false, list: [], listFilters: { maxPrice: null, chains: [] } };
 
 interface AppState extends Persisted {
   ready: boolean;
@@ -41,6 +49,7 @@ interface AppState extends Persisted {
   toggleCategory: (id: string) => void;
   setProfile: (profile: Profile) => void;
   setLocation: (location: SavedLocation) => void;
+  setListFilters: (filters: ListFilters) => void;
   completeOnboarding: (profile: Profile, categories: string[]) => void;
   restartOnboarding: () => void;
   refresh: (force?: boolean) => Promise<void>;
@@ -76,7 +85,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         try {
           const saved = JSON.parse(raw) as Partial<Persisted>;
           const favorites = dedupeStores(saved.favorites ?? []);
-          setPersisted({ ...EMPTY, ...saved, favorites, list: (saved.list ?? []).slice(0, MAX_LIST_ITEMS), profile: { ...EMPTY.profile, ...saved.profile } });
+          setPersisted({ ...EMPTY, ...saved, favorites, list: (saved.list ?? []).slice(0, MAX_LIST_ITEMS), profile: { ...EMPTY.profile, ...saved.profile }, listFilters: { ...EMPTY.listFilters, ...saved.listFilters } });
           // Pulizia dei file non più utili, a comodo e senza bloccare l'avvio.
           setTimeout(() => void pruneStorage(favorites, snapshotStorage), 3000);
         } catch {}
@@ -111,7 +120,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           again.current = true;
         }
         if (!cacheOnly) {
-          const fresh = await loadOffers(persisted.favorites, snapshotStorage, { force, background, onProgress: background ? undefined : setProgress });
+          // Sempre in modalità leggera (un negozio alla volta, con pause): il telefono resta fluido mentre si scarica.
+          const fresh = await loadOffers(persisted.favorites, snapshotStorage, { force, background: true, onProgress: background ? undefined : setProgress });
           // Un respiro prima di consegnare i dati nuovi alle schermate.
           if (background) await new Promise<void>((resolve) => setTimeout(resolve, 50));
           setData(fresh);
@@ -185,6 +195,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       completeOnboarding: (profile, categories) => update({ ...persisted, profile, categories, onboarded: true }),
       restartOnboarding: () => update({ ...persisted, onboarded: false }),
       setLocation: (location) => update({ ...persisted, location }),
+      setListFilters: (listFilters) => update({ ...persisted, listFilters }),
       addToList: (item) => update({ ...persisted, list: persisted.list.some((x) => x.id === item.id) ? persisted.list : [item, ...persisted.list].slice(0, MAX_LIST_ITEMS) }),
       updateListItem: (id, patch) => update({ ...persisted, list: persisted.list.map((x) => (x.id === id ? { ...x, ...patch } : x)) }),
       removeFromList: (id) => update({ ...persisted, list: persisted.list.filter((x) => x.id !== id) }),

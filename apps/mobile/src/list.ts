@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { classifyProduct, normalizeText } from "@salvaspesa/deal-logic";
 import { offerKey, type OfferView } from "@salvaspesa/app-core";
 import { usePrepared } from "./offers";
-import { useApp } from "./state";
+import { useApp, type ListFilters } from "./state";
 
 // Un prodotto della lista: nasce da un'offerta (con il prezzo di quel momento) oppure da un testo libero.
 export interface ListItem {
@@ -17,6 +17,10 @@ export interface ListItem {
 }
 
 export const MAX_LIST_ITEMS = 100;
+
+// Un'offerta rispetta i filtri scelti nella lista (prezzo massimo e insegne).
+export const passesFilters = (offer: Pick<OfferView, "price" | "chainId">, filters: ListFilters): boolean =>
+  (filters.maxPrice === null || offer.price <= filters.maxPrice) && (filters.chains.length === 0 || filters.chains.includes(offer.chainId));
 
 export const itemFromOffer = (offer: OfferView): ListItem => ({
   id: `o:${offerKey(offer)}`,
@@ -59,7 +63,7 @@ const MATCHES_PER_ITEM = 3;
 
 // Per ogni prodotto da comprare, le offerte più convenienti (prezzo al kg/litro quando c'è, altrimenti il prezzo).
 export function useListMatches(): { matches: Match[]; plan: ChainPlan[] } {
-  const { list } = useApp();
+  const { list, listFilters } = useApp();
   const prepared = usePrepared();
   return useMemo(() => {
     const open = list.filter((item) => !item.done);
@@ -69,7 +73,7 @@ export function useListMatches(): { matches: Match[]; plan: ChainPlan[] } {
       // Il cibo per animali compare solo se è proprio ciò che si cerca ("pollo" non deve portare alle crocchette).
       const wantsPet = classifyProduct({ name: item.name }).group === "animali";
       const found: OfferView[] = [];
-      for (const p of prepared) if ((wantsPet || p.group !== "animali") && tokens.every((token) => p.text.includes(token))) found.push(p.offer);
+      for (const p of prepared) if ((wantsPet || p.group !== "animali") && passesFilters(p.offer, listFilters) && tokens.every((token) => p.text.includes(token))) found.push(p.offer);
       found.sort((a, b) => (a.unitPrice ?? a.price) - (b.unitPrice ?? b.price));
       return { item, offers: found.slice(0, MATCHES_PER_ITEM) };
     });
@@ -88,5 +92,5 @@ export function useListMatches(): { matches: Match[]; plan: ChainPlan[] } {
     }
     const plan = [...byChain.values()].sort((a, b) => b.covered - a.covered || a.cost - b.cost);
     return { matches, plan };
-  }, [list, prepared]);
+  }, [list, prepared, listFilters]);
 }

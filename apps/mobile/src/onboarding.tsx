@@ -3,7 +3,6 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GROUPS } from "@salvaspesa/deal-logic";
 import { Icon, type IconName } from "./icons";
-import { Stepper } from "./stepper";
 import { useApp, type Profile } from "./state";
 import { colors } from "./theme";
 
@@ -19,8 +18,6 @@ export function Onboarding() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
   const [name, setName] = useState(saved.name);
-  const [adults, setAdults] = useState(saved.adults);
-  const [children, setChildren] = useState(saved.children);
   const [budget, setBudget] = useState(saved.weeklyBudget === null ? "" : String(saved.weeklyBudget));
   const [categories, setCategories] = useState<string[]>(savedCategories);
 
@@ -30,7 +27,7 @@ export function Onboarding() {
 
   function finish() {
     if (budgetInvalid) return;
-    const profile: Profile = { name: name.trim(), adults, children, weeklyBudget: parsed === null ? null : Math.round(parsed * 100) / 100 };
+    const profile: Profile = { name: name.trim(), adults: saved.adults, children: saved.children, weeklyBudget: parsed === null ? null : Math.round(parsed * 100) / 100 };
     completeOnboarding(profile, categories);
   }
 
@@ -54,11 +51,6 @@ export function Onboarding() {
 
             <Text style={styles.label}>Nome</Text>
             <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Come ti chiami?" />
-
-            <View style={styles.household}>
-              <Stepper label="Adulti" value={adults} onChange={setAdults} />
-              <Stepper label="Bambini" value={children} onChange={setChildren} />
-            </View>
 
             <Text style={styles.label}>Soglia di spesa settimanale (€)</Text>
             <TextInput style={[styles.input, budgetInvalid && styles.inputInvalid]} value={budget} onChangeText={setBudget} keyboardType="decimal-pad" placeholder="Nessuna soglia" />
@@ -117,7 +109,6 @@ const styles = StyleSheet.create({
   input: { padding: 10, borderRadius: 10, backgroundColor: "#f7fbff", borderWidth: 1, borderColor: "#e2e8f0" },
   inputInvalid: { borderColor: "#dc2626" },
   error: { color: "#dc2626", fontSize: 12, marginTop: 4 },
-  household: { flexDirection: "row", gap: 24 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: "#cbd5e1", backgroundColor: "#f7fbff" },
   chipOn: { backgroundColor: "#1d5fd1", borderColor: "#1d5fd1" },

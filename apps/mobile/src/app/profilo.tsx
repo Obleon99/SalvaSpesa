@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { GROUPS } from "@salvaspesa/deal-logic";
 import { Icon, type IconName } from "../icons";
-import { Stepper } from "../stepper";
 import { useApp } from "../state";
 import { colors, radius } from "../theme";
 import { Button, Card, Chip } from "../ui";
@@ -37,11 +36,6 @@ export default function Profilo() {
         <Title icon="user" text="I tuoi dati" />
         <Text style={styles.label}>Nome</Text>
         <TextInput style={styles.input} value={name} onChangeText={setName} onEndEditing={saveName} placeholder="Come ti chiami?" placeholderTextColor={colors.muted} />
-
-        <View style={styles.household}>
-          <Stepper label="Adulti" value={profile.adults} onChange={(adults) => setProfile({ ...profile, adults })} />
-          <Stepper label="Bambini" value={profile.children} onChange={(children) => setProfile({ ...profile, children })} />
-        </View>
 
         <Text style={styles.label}>Soglia di spesa settimanale (€)</Text>
         <TextInput style={styles.input} value={budget} onChangeText={setBudget} onEndEditing={saveBudget} keyboardType="decimal-pad" placeholder="Nessuna soglia" placeholderTextColor={colors.muted} />
@@ -93,6 +87,5 @@ const styles = StyleSheet.create({
   value: { fontSize: 15, color: colors.text },
   muted: { color: colors.muted },
   input: { padding: 12, borderRadius: radius.sm, backgroundColor: "#eef5fd", borderWidth: 1, borderColor: colors.line, color: colors.text },
-  household: { flexDirection: "row", gap: 24 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
 });

@@ -14,55 +14,83 @@ const MEMO_LIMIT = 8000;
 
 // Categoria e testo normalizzato di un prodotto si ricordano: dopo un aggiornamento si classificano solo le offerte nuove.
 const memo = new Map<string, { group: string; text: string }>();
-const done = new WeakMap<OfferView[], Prepared[]>();
-const pending = new WeakMap<OfferView[], Promise<Prepared[]>>();
+
+// La preparazione di un insieme di offerte è condivisa tra le schermate e pubblica i risultati man mano:
+// le più scontate (già ordinate) compaiono subito, il resto si aggiunge a blocchi senza bloccare l'interfaccia.
+interface Job {
+  snapshot: Prepared[];
+  finished: boolean;
+  subscribers: Set<() => void>;
+}
+const jobs = new WeakMap<OfferView[], Job>();
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+const CHUNK = 100;
 
-// Prepara le offerte a piccoli blocchi, cedendo il thread tra uno e l'altro: anche con migliaia di offerte nuove l'interfaccia non si blocca.
-function prepareAsync(offers: OfferView[]): Promise<Prepared[]> {
-  let promise = pending.get(offers);
-  if (!promise) {
-    promise = (async () => {
-      if (memo.size > MEMO_LIMIT) memo.clear();
-      const out: Prepared[] = [];
-      for (let i = 0; i < offers.length; i += 150) {
-        for (const offer of offers.slice(i, i + 150)) {
-          const key = `${offer.chainId}|${offer.name}|${offer.brand ?? ""}`;
-          let entry = memo.get(key);
-          if (!entry) {
-            entry = { group: classifyProduct(offer).group, text: normalizeText(`${offer.name} ${offer.brand ?? ""}`) };
-            memo.set(key, entry);
-          }
-          out.push({ offer, group: entry.group, text: entry.text });
-        }
-        if (i + 150 < offers.length) await tick();
+async function run(offers: OfferView[], job: Job): Promise<void> {
+  if (memo.size > MEMO_LIMIT) memo.clear();
+  const ordered = [...offers].sort((a, b) => (b.discountPercent ?? -1) - (a.discountPercent ?? -1));
+  const out: Prepared[] = [];
+  const publish = () => {
+    job.snapshot = out.slice();
+    for (const notify of job.subscribers) notify();
+  };
+  for (let i = 0; i < ordered.length; i += CHUNK) {
+    for (const offer of ordered.slice(i, i + CHUNK)) {
+      const key = `${offer.chainId}|${offer.name}|${offer.brand ?? ""}`;
+      let entry = memo.get(key);
+      if (!entry) {
+        entry = { group: classifyProduct(offer).group, text: normalizeText(`${offer.name} ${offer.brand ?? ""}`) };
+        memo.set(key, entry);
       }
-      out.sort((a, b) => (b.offer.discountPercent ?? 0) - (a.offer.discountPercent ?? 0));
-      done.set(offers, out);
-      return out;
-    })();
-    pending.set(offers, promise);
+      out.push({ offer, group: entry.group, text: entry.text });
+    }
+    // Il primo blocco subito, poi uno ogni tanto: ogni pubblicazione ridisegna le liste.
+    if (i === 0 || (i / CHUNK) % 6 === 0) publish();
+    await tick();
   }
-  return promise;
+  job.finished = true;
+  publish();
+}
+
+function jobFor(offers: OfferView[]): Job {
+  let job = jobs.get(offers);
+  if (!job) {
+    job = { snapshot: [], finished: false, subscribers: new Set() };
+    jobs.set(offers, job);
+    void run(offers, job);
+  }
+  return job;
 }
 
 // Tutte le offerte preparate (senza filtro per categorie): servono alla lista della spesa.
-// Finché la preparazione di un nuovo set non è finita restano a schermo quelle precedenti.
-export function usePrepared(): Prepared[] {
+// Finché la preparazione di un nuovo set non è partita restano a schermo quelle precedenti.
+export function usePreparedState(): { prepared: Prepared[]; preparing: boolean } {
   const { data } = useApp();
   const offers = data?.offers ?? NONE;
-  const [prepared, setPrepared] = useState<Prepared[]>(() => done.get(offers) ?? []);
+  const [shown, setShown] = useState<{ prepared: Prepared[]; preparing: boolean }>(() => {
+    const job = jobs.get(offers);
+    return { prepared: job?.snapshot ?? [], preparing: offers.length > 0 && !job?.finished };
+  });
   useEffect(() => {
-    let cancelled = false;
-    void prepareAsync(offers).then((result) => {
-      if (!cancelled) setPrepared(result);
-    });
+    const job = jobFor(offers);
+    const sync = () => setShown((old) => (job.snapshot.length === 0 && old.prepared.length > 0 && !job.finished ? old : { prepared: job.snapshot, preparing: !job.finished }));
+    job.subscribers.add(sync);
+    sync();
     return () => {
-      cancelled = true;
+      job.subscribers.delete(sync);
     };
   }, [offers]);
-  return prepared;
+  return shown;
+}
+
+export const usePrepared = (): Prepared[] => usePreparedState().prepared;
+
+// Vero finché le offerte in cache non sono state lette e preparate: la schermata mostra un caricamento, non «nessuna offerta».
+export function useOffersSettling(): boolean {
+  const { ready, data, favorites } = useApp();
+  const { preparing } = usePreparedState();
+  return favorites.length > 0 && (!ready || data === null || preparing);
 }
 
 // Offerte dei supermercati preferiti, filtrate per categorie del profilo e per testo, dalle più scontate.

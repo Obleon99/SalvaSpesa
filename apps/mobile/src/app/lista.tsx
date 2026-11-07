@@ -1,19 +1,20 @@
 import { memo, useDeferredValue, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { classifyProduct, normalizeText } from "@salvaspesa/deal-logic";
 import { ChainLogo } from "../chain-logo";
 import { Icon } from "../icons";
-import { itemFromOffer, itemFromText, itemTotal, listTotal, useListMatches, type ListItem } from "../list";
+import { itemFromOffer, itemFromText, itemTotal, listTotal, passesFilters, useListMatches, type ListItem } from "../list";
 import { euro } from "../offer-views";
 import { usePrepared } from "../offers";
 import { useApp } from "../state";
 import { colors, radius, shadow } from "../theme";
-import { StateMessage } from "../ui";
+import { Chip, StateMessage } from "../ui";
 
 const SUGGESTIONS = 5;
+const PRICE_STEPS = [1, 2, 3, 5, 10];
 
 export default function Lista() {
-  const { list, profile, addToList, updateListItem, removeFromList, clearDone } = useApp();
+  const { list, profile, data, listFilters, setListFilters, addToList, updateListItem, removeFromList, clearDone } = useApp();
   const { matches } = useListMatches();
   const prepared = usePrepared();
   const [text, setText] = useState("");
@@ -28,13 +29,17 @@ export default function Lista() {
     const wantsPet = classifyProduct({ name: deferred }).group === "animali";
     const found = [];
     for (const p of prepared) {
-      if ((wantsPet || p.group !== "animali") && words.every((w) => p.text.includes(w))) {
+      if ((wantsPet || p.group !== "animali") && passesFilters(p.offer, listFilters) && words.every((w) => p.text.includes(w))) {
         found.push(p.offer);
         if (found.length >= 40) break;
       }
     }
     return found.sort((a, b) => a.price - b.price).slice(0, SUGGESTIONS);
-  }, [deferred, prepared]);
+  }, [deferred, prepared, listFilters]);
+
+  // Insegne tra cui scegliere: quelle dei supermercati preferiti.
+  const chainOptions = useMemo(() => [...new Map((data?.sources ?? []).map((s) => [s.chainId, s.chainName])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [data]);
+  const toggleChain = (id: string) => setListFilters({ ...listFilters, chains: listFilters.chains.includes(id) ? listFilters.chains.filter((c) => c !== id) : [...listFilters.chains, id] });
 
   const bestFor = useMemo(() => new Map(matches.map((m) => [m.item.id, m.offers[0]])), [matches]);
   const doneCount = list.filter((item) => item.done).length;
@@ -63,6 +68,27 @@ export default function Lista() {
         <Pressable style={[styles.addButton, text.trim().length < 2 && { opacity: 0.4 }]} onPress={addText} disabled={text.trim().length < 2}>
           <Icon name="plus" size={20} color="#fff" />
         </Pressable>
+      </View>
+
+      <View style={styles.filters}>
+        <Text style={styles.filterLabel}>Prezzo massimo</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} keyboardShouldPersistTaps="handled">
+          <Chip label="Qualsiasi" on={listFilters.maxPrice === null} onPress={() => setListFilters({ ...listFilters, maxPrice: null })} />
+          {PRICE_STEPS.map((step) => (
+            <Chip key={step} label={`Fino a ${euro(step)}`} on={listFilters.maxPrice === step} onPress={() => setListFilters({ ...listFilters, maxPrice: listFilters.maxPrice === step ? null : step })} />
+          ))}
+        </ScrollView>
+        {chainOptions.length > 1 && (
+          <>
+            <Text style={styles.filterLabel}>Supermercati</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} keyboardShouldPersistTaps="handled">
+              <Chip label="Tutti" on={listFilters.chains.length === 0} onPress={() => setListFilters({ ...listFilters, chains: [] })} />
+              {chainOptions.map(([id, name]) => (
+                <Chip key={id} label={name} on={listFilters.chains.includes(id)} onPress={() => toggleChain(id)} />
+              ))}
+            </ScrollView>
+          </>
+        )}
       </View>
 
       {suggestions.length > 0 && (
@@ -204,6 +230,9 @@ const styles = StyleSheet.create({
   budgetNote: { flexDirection: "row", alignItems: "center", gap: 6 },
   noteText: { fontWeight: "700", fontSize: 13 },
   noteMuted: { color: colors.muted, fontSize: 12 },
+  filters: { marginBottom: 6, gap: 2 },
+  filterLabel: { marginHorizontal: 14, marginTop: 4, color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
+  chipRow: { paddingHorizontal: 14, paddingVertical: 4, gap: 8 },
   addBox: { flexDirection: "row", gap: 8, marginHorizontal: 14, marginBottom: 6 },
   input: { flex: 1, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.pill, backgroundColor: colors.card, color: colors.text, fontSize: 15, ...shadow },
   addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },

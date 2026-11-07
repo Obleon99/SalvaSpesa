@@ -5,12 +5,12 @@ import { discountPercent, endOfDayIso, unitPriceFromPackage } from "../parse";
 import type { ScrapedOffer } from "@salvaspesa/shared-types";
 
 const BASE = "https://www.carrefour.it";
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 40;
 const REQUEST_DELAY_MS = 400;
 // Offerte: prima le promozioni (ordinamento per promo), ci si ferma alla prima pagina senza sconti.
-const MAX_PROMO_PAGES = 6;
+const MAX_PROMO_PAGES = 16;
 // Catalogo completo: tetto di sicurezza per reparto.
-const MAX_CATALOG_PAGES = 12;
+const MAX_CATALOG_PAGES = 30;
 const DEFAULT_VALID_DAYS = 7;
 const MIN_DISCOUNT = 25;
 const MAX_OFFERS = 1200;
