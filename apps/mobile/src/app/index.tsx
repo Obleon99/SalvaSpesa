@@ -35,7 +35,17 @@ export default function Home() {
   const people = profile.adults + profile.children;
   const busy = loading || updating;
   // Motivi per cui un supermercato non ha dato offerte, mostrati solo quando serve capire cosa è andato storto.
-  const problems = useMemo(() => [...new Set((data?.sources ?? []).filter((s) => s.status !== "ok" && s.note).map((s) => `${s.chainName}: ${friendly(s.note ?? "")}`))].slice(0, 4), [data]);
+  const problems = useMemo(() => {
+    const day = (iso: string) => new Date(iso).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
+    const lines = (data?.sources ?? [])
+      .filter((s) => s.status !== "ok" && s.status !== "unsupported")
+      .map((s) => {
+        if (s.note) return `${s.chainName}: ${friendly(s.note)}`;
+        if (s.validUntil && Date.parse(s.validUntil) < Date.now()) return `${s.chainName}: volantino scaduto il ${day(s.validUntil)}, nessun nuovo volantino disponibile.`;
+        return `${s.chainName}: nessun dato salvato sul telefono.`;
+      });
+    return [...new Set(lines)].slice(0, 4);
+  }, [data]);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>

@@ -68,6 +68,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const latest = useRef<(force?: boolean, cacheOnly?: boolean, background?: boolean) => Promise<void>>(async () => undefined);
   const previous = useRef<FavoriteRef[]>([]);
   const started = useRef(false);
+  const autoTried = useRef(false);
 
   useEffect(() => {
     readText(STATE_KEY).then((raw) => {
@@ -104,6 +105,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const cached = await loadOffers(persisted.favorites, snapshotStorage, { cacheOnly: true });
         if (cached.offers.length > 0 || cacheOnly) setData(cached);
         else setLoading(true);
+        // Cache vuota o scaduta all'apertura: una sola volta per avvio si scarica in silenzio, invece di lasciare la home vuota.
+        if (cacheOnly && cached.offers.length === 0 && persisted.favorites.length > 0 && !autoTried.current) {
+          autoTried.current = true;
+          again.current = true;
+        }
         if (!cacheOnly) {
           const fresh = await loadOffers(persisted.favorites, snapshotStorage, { force, background, onProgress: background ? undefined : setProgress });
           // Un respiro prima di consegnare i dati nuovi alle schermate.
